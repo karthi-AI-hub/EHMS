@@ -36,3 +36,18 @@
     transform: rotate(360deg);
   }
 }
+
+/*  */
+
+.sidebar-open {
+  width: 250px !important;
+}
+
+.sidebar-closed {
+  width: 80px !important;
+}
+
+.nav-link.active {
+  background-color: #007bff;
+  border-radius: 5px;
+}

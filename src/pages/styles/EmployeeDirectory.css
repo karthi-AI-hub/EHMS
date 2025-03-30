@@ -1,0 +1,93 @@
+.container {
+  margin: 40px auto;
+  max-width: 850px;
+  background: #fff;
+  padding: 25px;
+  border-radius: 10px;
+  box-shadow: 0px 6px 15px rgba(0, 0, 0, 0.1);
+}
+
+.header {
+  font-weight: 600;
+  margin-bottom: 25px;
+  color: #2c3e50;
+  text-align: center;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 15px;
+}
+
+.table-container {
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0px 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.table-header {
+  background-color: #1976d2;
+  color: white;
+}
+
+.employee-row {
+  background-color: #e3f2fd;
+}
+
+.family-row {
+  background-color: #f1f8e9;
+}
+
+.action-button {
+  color: #1976d2;
+  transition: all 0.3s ease;
+}
+
+.action-button:hover {
+  color: #0d47a1;
+  transform: scale(1.1);
+}
+
+.pagination-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 15px;
+  padding: 10px;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
+.pagination-text {
+  font-size: 16px;
+  font-weight: 500;
+  color: #333;
+}
+
+.pagination-buttons {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.pagination-dropdown {
+  min-width: 200px;  /* Ensures enough space for full text */
+  width: auto;        /* Adjusts dynamically */
+  display: flex;
+  align-items: center;
+}
+
+.pagination-dropdown .MuiInputLabel-root {
+  white-space: nowrap;  /* Prevents the label from being cut off */
+}
+
+.pagination-dropdown .MuiSelect-select {
+  min-width: 100px !important; /* Force apply width */
+  white-space: nowrap; /* Prevents text wrapping */
+  overflow: hidden; /* Ensures text is fully visible */
+  text-overflow: ellipsis; /* Prevents text cut-off */
+}
+
+
