@@ -29,9 +29,11 @@ import {
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
+import { useAuth } from "../context/AuthContext"; // Import AuthContext
 import "./styles/EmployeeDirectory.css";
 
 const EmployeeDirectory = () => {
+  const { user } = useAuth(); // Get the logged-in user's role
   const [employees, setEmployees] = useState([]);
   const [filteredEmployees, setFilteredEmployees] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -106,7 +108,15 @@ const EmployeeDirectory = () => {
   };
 
   const handleViewReports = (id) => {
-    navigate(`/technician/reports/${id}`); // Pass the ID (employeeId or dependentId)
+    const roleToRouteMap = {
+      TECHNICIAN: "technician",
+      DOCTOR: "doctor",
+      ADMIN: "admin",
+      EMPLOYEE: "employee",
+    };
+  
+    const route = roleToRouteMap[user.role] || "employee"; 
+    navigate(`/${route}/reports/${id}`);
   };
 
   const handleNextReport = () => {

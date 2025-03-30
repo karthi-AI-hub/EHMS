@@ -10,6 +10,7 @@ import {
   Avatar,
   Chip,
   Table,
+  Button,
   TableBody,
   TableCell,
   TableContainer,
@@ -18,12 +19,20 @@ import {
   IconButton,
   Tooltip,
 } from "@mui/material";
-import { Person, Group, Email, Phone, LocationOn, Refresh } from "@mui/icons-material";
+import {
+  Person,
+  Group,
+  Email,
+  Phone,
+  LocationOn,
+  Refresh,
+} from "@mui/icons-material";
 import { motion } from "framer-motion";
+import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import { useAuth } from "../context/AuthContext";
 import socket from "../utils/socket";
-import LoadingScreen from "../components/common/LoadingScreen"; // Import the LoadingScreen component
+import LoadingScreen from "../components/common/LoadingScreen";
 
 const Profile = () => {
   const { user } = useAuth();
@@ -34,6 +43,7 @@ const Profile = () => {
   const [error, setError] = useState(null);
   const [selectedFamilyMember, setSelectedFamilyMember] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -85,16 +95,27 @@ const Profile = () => {
       ? employeeData
       : familyData.find((m) => m.dependentId === selectedTab) || {};
 
+  const handleViewReports = (id) => {
+    navigate(`/employee/reports/${id}`);
+  };
+
   // Map relation to abbreviations for tabs
   const getRelationAbbreviation = (relation) => {
     switch (relation.toLowerCase()) {
       case "spouse":
         return "SP";
+      case "wife":
+        return "WF";
+      case "husband":
+        return "HB";
       case "son":
         return "SN";
       case "daughter":
         return "DT";
-         
+      case "father":
+        return "FT";
+      case "mother":
+        return "MT";
       default:
         return relation.slice(0, 2).toUpperCase();
     }
@@ -103,12 +124,28 @@ const Profile = () => {
   return (
     <Box sx={{ maxWidth: "100%", p: 3 }}>
       {/* Page Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-        <Typography variant="h4" fontWeight="bold">Employee Profile</Typography>
+      <Box
+        display="flex"
+        justifyContent="space-between"
+        alignItems="center"
+        mb={2}
+      >
+        <Typography variant="h4" fontWeight="bold">
+          {user.role === "ADMIN"
+            ? "Admin Profile"
+            : user.role === "DOCTOR"
+            ? "Doctor Profile"
+            : user.role === "TECHNICIAN"
+            ? "Technician Profile"
+            : "Employee Profile"}
+        </Typography>
         <Tooltip title="Refresh">
           <IconButton
             onClick={() => window.location.reload()}
-            sx={{ transition: "0.3s", "&:hover": { transform: "rotate(360deg)" } }}
+            sx={{
+              transition: "0.3s",
+              "&:hover": { transform: "rotate(360deg)" },
+            }}
           >
             <Refresh />
           </IconButton>
@@ -126,9 +163,16 @@ const Profile = () => {
       >
         <Tab
           key="You"
-          label={<Box display="flex" alignItems="center"><Person sx={{ mr: 1 }} />A</Box>}
+          label={
+            <Box display="flex" alignItems="center">
+              <Person sx={{ mr: 1 }} />A
+            </Box>
+          }
           value="You"
-          sx={{ transition: "0.3s", "&:hover": { color: "#1976d2", transform: "scale(1.1)" } }}
+          sx={{
+            transition: "0.3s",
+            "&:hover": { color: "#1976d2", transform: "scale(1.1)" },
+          }}
         />
         {familyData.map((member) => (
           <Tab
@@ -140,7 +184,10 @@ const Profile = () => {
               </Box>
             }
             value={member.dependentId}
-            sx={{ transition: "0.3s", "&:hover": { color: "#1976d2", transform: "scale(1.1)" } }}
+            sx={{
+              transition: "0.3s",
+              "&:hover": { color: "#1976d2", transform: "scale(1.1)" },
+            }}
           />
         ))}
       </Tabs>
@@ -205,11 +252,52 @@ const Profile = () => {
                 flexWrap: "wrap",
               }}
             >
-              <Chip icon={<Email />} label={currentProfile?.email || "N/A"} variant="outlined" />
-              <Chip icon={<Phone />} label={currentProfile?.phone || "N/A"} variant="outlined" />
-              <Chip icon={<LocationOn />} label={currentProfile?.address || "N/A"} variant="outlined" />
-              </Box>
+              <Chip
+                icon={<Email />}
+                label={currentProfile?.email || "N/A"}
+                variant="outlined"
+              />
+              <Chip
+                icon={<Phone />}
+                label={currentProfile?.phone || "N/A"}
+                variant="outlined"
+              />
+              <Chip
+                icon={<LocationOn />}
+                label={currentProfile?.address || "N/A"}
+                variant="outlined"
+              />
+            </Box>
+            <Box mt={2}></Box>
+            {user.role !== "ADMIN" && (
               <Box mt={2}>
+                <Button
+                  variant="contained"
+                  color="primary"
+                  onClick={() => handleViewReports(currentProfile?.employeeId)} // Navigate to self reports
+                  sx={{ mt: 2 }}
+                >
+                  View Your Reports
+                </Button>
+              </Box>
+            )}
+          </>
+        )}
+        {/* Render details for dependents */}
+        {selectedTab !== "You" && (
+          <>
+            <Typography variant="subtitle1" color="textSecondary">
+              {currentProfile?.dependentId || "N/A"}
+            </Typography>
+            <Box mt={2}>
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => handleViewReports(currentProfile?.dependentId)} // Navigate to dependent reports
+                sx={{ mt: 2 }}
+              >
+                View Reports for {currentProfile?.name || "Dependent"}
+              </Button>
             </Box>
           </>
         )}
@@ -221,42 +309,71 @@ const Profile = () => {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        sx={{ p: 3, borderRadius: "12px", boxShadow: 4, mb: 3, backgroundColor: "#f9f9f9" }}
+        sx={{
+          p: 3,
+          borderRadius: "12px",
+          boxShadow: 4,
+          mb: 3,
+          backgroundColor: "#f9f9f9",
+        }}
       >
         <CardContent>
-          <Typography variant="h5" fontWeight="bold" color="primary" gutterBottom>
+          <Typography
+            variant="h5"
+            fontWeight="bold"
+            color="primary"
+            gutterBottom
+          >
             <Person sx={{ verticalAlign: "middle", mr: 1 }} /> Personal Details
           </Typography>
-          <TableContainer component={Paper} elevation={0} sx={{ borderRadius: "8px", overflow: "hidden" }}>
+          <TableContainer
+            component={Paper}
+            elevation={0}
+            sx={{ borderRadius: "8px", overflow: "hidden" }}
+          >
             <Table>
               <TableBody>
                 <TableRow>
-                  <TableCell><Typography fontWeight="bold">Name</Typography></TableCell>
+                  <TableCell>
+                    <Typography fontWeight="bold">Name</Typography>
+                  </TableCell>
                   <TableCell>{currentProfile?.name || "N/A"}</TableCell>
                 </TableRow>
                 {selectedTab === "You" && (
                   <>
                     <TableRow>
-                      <TableCell><Typography fontWeight="bold">Email</Typography></TableCell>
+                      <TableCell>
+                        <Typography fontWeight="bold">Email</Typography>
+                      </TableCell>
                       <TableCell>{currentProfile?.email || "N/A"}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell><Typography fontWeight="bold">Phone</Typography></TableCell>
+                      <TableCell>
+                        <Typography fontWeight="bold">Phone</Typography>
+                      </TableCell>
                       <TableCell>{currentProfile?.phone || "N/A"}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell><Typography fontWeight="bold">Address</Typography></TableCell>
+                      <TableCell>
+                        <Typography fontWeight="bold">Address</Typography>
+                      </TableCell>
                       <TableCell>{currentProfile?.address || "N/A"}</TableCell>
                     </TableRow>
                     <TableRow>
-                      <TableCell><Typography fontWeight="bold">Department</Typography></TableCell>
-                      <TableCell>{currentProfile?.department || "N/A"}</TableCell>
+                      <TableCell>
+                        <Typography fontWeight="bold">Department</Typography>
+                      </TableCell>
+                      <TableCell>
+                        {currentProfile?.department || "N/A"}
+                      </TableCell>
                     </TableRow>
                   </>
                 )}
                 {selectedTab !== "You" && (
                   <TableRow>
-                    <TableCell><Typography fontWeight="bold">Relation</Typography></TableCell>
+                    <TableCell>
+                      <Typography fontWeight="bold">Relation</Typography>
+                    </TableCell>
                     <TableCell>{currentProfile?.relation || "N/A"}</TableCell>
                   </TableRow>
                 )}

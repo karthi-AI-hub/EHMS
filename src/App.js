@@ -15,8 +15,8 @@ import ProtectedRoute from "./utils/ProtectedRoute";
 import Unauthorized from "./pages/auth/Unauthorized";
 import UnifiedLayout from "./layouts/UnifiedLayout"; 
 import EmployeeDirectory from "./pages/EmployeeDirectory";
-import TechnicianReports from "./pages/technician/TechnicianReports";
-import FileUploadPage from "./pages/technician/FileUpload";
+import EmployeeReports from "./pages/EmployeeReports";
+import FileUploadPage from "./utils/FileUpload";
 
 function App() {
   return (
@@ -32,14 +32,15 @@ function App() {
           <Route
             path="/employee/*"
             element={
-              <ProtectedRoute allowedRoles={["EMPLOYEE"]}>
+              <ProtectedRoute allowedRoles={["EMPLOYEE","DOCTOR","TECHNICIAN","ADMIN"]}>
                 <UnifiedLayout />
               </ProtectedRoute>
             }
           >
             <Route path="dashboard" element={<EmployeeDashboard />} />
             <Route path="profile" element={<Profile />} />
-            <Route path="reports" element={<Reports />} />
+            <Route path="reports/:employeeId" element={<EmployeeReports />} />
+
             <Route
               path="directory"
               element={
@@ -61,6 +62,7 @@ function App() {
             <Route path="dashboard" element={<DoctorDashboard />} />
             <Route path="profile" element={<Profile />} />
             <Route path="employeesList" element={<EmployeeDirectory />} />
+            <Route path="reports/:employeeId" element={<EmployeeReports />} />
           </Route>
 
           <Route
@@ -74,7 +76,7 @@ function App() {
             <Route path="dashboard" element={<TechnicianDashboard />} />
             <Route path="employeesList" element={<EmployeeDirectory />} />
             <Route path="profile" element={<Profile />} />
-            <Route path="reports/:employeeId" element={<TechnicianReports />} />
+            <Route path="reports/:employeeId" element={<EmployeeReports />} />
             <Route path="upload-reports/:employeeId" element={<FileUploadPage />} />
           </Route>
 
@@ -87,6 +89,9 @@ function App() {
             }
           >
             <Route path="dashboard" element={<AdminDashboard />} />
+            <Route path="profile" element={<Profile />} />
+            <Route path="employeesList" element={<EmployeeDirectory />} />
+            <Route path="reports/:employeeId" element={<EmployeeReports />} />
           </Route>
 
           {/* 404 Page */}

@@ -11,7 +11,7 @@ const Sidebar = ({ isOpen, toggleSidebar, onTabClick }) => {
     EMPLOYEE: [
       { text: "Dashboard", icon: <Home />, path: "/employee/dashboard" },
       { text: "Profile", icon: <Person />, path: "/employee/profile" },
-      { text: "Reports", icon: <Description />, path: "/employee/reports" },
+      // { text: "Reports", icon: <Description />, path: "/employee/reports" },
       { text: "Doctors", icon: <LocalHospital />, path: "/employee/doctorsList" },
     ],
     ADMIN: [

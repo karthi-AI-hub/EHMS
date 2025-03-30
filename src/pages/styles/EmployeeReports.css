@@ -1,0 +1,148 @@
+Main Container
+.technician-reports-container {
+  padding: 24px;
+  background: #ffffff;
+  border-radius: 12px;
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Header */
+.header-container {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+/* Action Bar */
+.action-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+/* Status Bar */
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Filters Section */
+.filters-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Table Styles */
+.MuiTable-root {
+  min-width: 100%;
+}
+
+.MuiTableCell-root {
+  padding: 12px 16px;
+}
+
+.MuiTableHead-root .MuiTableCell-root {
+  font-weight: 600;
+  background-color: #f5f7fa;
+}
+
+/* Sticky Table Header */
+.MuiTableHead-root {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background-color: #ffffff;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* Pagination */
+.pagination-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+  .action-bar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  
+  .action-bar > * {
+    width: 100%;
+  }
+  
+  .filters-container {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .filters-container > * {
+    width: 100%;
+  }
+
+  .pagination-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .MuiTableCell-root {
+    padding: 8px;
+  }
+}
+
+/* Date Picker Customization */
+.react-datepicker-wrapper {
+  width: 100%;
+}
+
+/* Loading Skeletons */
+.MuiSkeleton-root {
+  border-radius: 4px;
+}
+
+/* Chip Colors */
+.MuiChip-root.lab-chip {
+  background-color: #4caf50;
+  color: white;
+}
+
+.MuiChip-root.ecg-chip {
+  background-color: #2196f3;
+  color: white;
+}
+
+.MuiChip-root.scan-chip {
+  background-color: #9c27b0;
+  color: white;
+}
+
+.MuiChip-root.xray-chip {
+  background-color: #ff9800;
+  color: white;
+}
+
+.MuiChip-root.pharmacy-chip {
+  background-color: #f44336;
+  color: white;
+}
+
+.MuiChip-root.others-chip {
+  background-color: #607d8b;
+  color: white;
+}
