@@ -19,12 +19,19 @@ import {
   Select,
   FormControl,
   InputLabel,
+  Tabs,
+  Tab,
+  List,
+  ListItem,
+  ListItemText,
+  Button,
 } from "@mui/material";
 import {
   Description,
   ErrorOutline,
   NavigateBefore,
   NavigateNext,
+  Edit,
 } from "@mui/icons-material";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -45,7 +52,8 @@ const EmployeeDirectory = () => {
     key: "name",
     direction: "asc",
   });
-
+  const [selectedTab, setSelectedTab] = useState("profile");
+  const [conditions, setConditions] = useState([]);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -58,14 +66,54 @@ const EmployeeDirectory = () => {
 
     try {
       const response = await api.get("/allemployees");
-      setEmployees(response.data);
-      setFilteredEmployees(response.data);
+      const employeesWithDetails = await Promise.all(
+        response.data.map(async (emp) => {
+          const allergies = await fetchAllergies(emp.employeeId);
+          const conditions = await fetchConditions(emp.employeeId);
+          const instructions = emp.reports
+            ? await fetchInstructions(emp.reports[0]?.id) // Fetch instructions for the first report
+            : [];
+          return { ...emp, allergies, conditions, instructions };
+        })
+      );
+      setEmployees(employeesWithDetails);
+      setFilteredEmployees(employeesWithDetails);
     } catch (err) {
       setEmployees([]);
       setFilteredEmployees([]);
       setError("Unable to fetch employees. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchConditions = async (employeeId) => {
+    try {
+      const response = await api.get(`/api/conditions/${employeeId}`);
+      return response.data; // Return conditions for the employee
+    } catch (error) {
+      console.error("Error fetching conditions:", error);
+      return [];
+    }
+  };
+
+  const fetchAllergies = async (employeeId) => {
+    try {
+      const response = await api.get(`/api/allergies/${employeeId}`);
+      return response.data; // Return allergies for the employee
+    } catch (error) {
+      console.error("Error fetching allergies:", error);
+      return [];
+    }
+  };
+
+  const fetchInstructions = async (reportId) => {
+    try {
+      const response = await api.get(`/api/instructions/${reportId}`);
+      return response.data; // Return instructions for the report
+    } catch (error) {
+      console.error("Error fetching instructions:", error);
+      return [];
     }
   };
 
@@ -193,6 +241,12 @@ const EmployeeDirectory = () => {
                     </TableSortLabel>
                   </TableCell>
                   <TableCell>Relation</TableCell>
+                  {["DOCTOR", "ADMIN"].includes(user.role) && (
+                    <>
+                      <TableCell>Allergies</TableCell>
+                      <TableCell>Conditions</TableCell>
+                    </>
+                  )}
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
@@ -205,30 +259,71 @@ const EmployeeDirectory = () => {
                         <TableCell>{emp.employeeId}</TableCell>
                         <TableCell>{emp.name}</TableCell>
                         <TableCell>Self</TableCell>
+                        {["DOCTOR", "ADMIN"].includes(user.role) && (
+                          <>
+                            <TableCell>
+                              <List>
+                                {emp.allergies?.map((allergy) => (
+                                  <ListItem key={allergy.id}>
+                                    <ListItemText primary={allergy.allergy_name} />
+                                  </ListItem>
+                                ))}
+                              </List>
+                            </TableCell>
+                            <TableCell>
+                              <List>
+                                {emp.conditions?.map((condition) => (
+                                  <ListItem key={condition.id}>
+                                    <ListItemText primary={condition.condition_name} />
+                                  </ListItem>
+                                ))}
+                              </List>
+                            </TableCell>
+                          </>
+                        )}
                         <TableCell>
                           <IconButton
                             className="action-button"
-                            onClick={() => handleViewReports(emp.employeeId)} // For self
+                            onClick={() => handleViewReports(emp.employeeId)}
                           >
-                            <Description /> {/* Replace with a "Report" icon if needed */}
+                            <Description />
                           </IconButton>
                         </TableCell>
                       </TableRow>
 
                       {emp.family.map((member) => (
-                        <TableRow
-                          key={member.dependentId}
-                          className="family-row"
-                        >
+                        <TableRow key={member.dependentId} className="family-row">
                           <TableCell>{member.dependentId}</TableCell>
                           <TableCell>{member.name}</TableCell>
                           <TableCell>{member.relation}</TableCell>
+                          {["DOCTOR", "ADMIN"].includes(user.role) && (
+                            <>
+                              <TableCell>
+                                <List>
+                                  {member.allergies?.map((allergy) => (
+                                    <ListItem key={allergy.id}>
+                                      <ListItemText primary={allergy.allergy_name} />
+                                    </ListItem>
+                                  ))}
+                                </List>
+                              </TableCell>
+                              <TableCell>
+                                <List>
+                                  {member.conditions?.map((condition) => (
+                                    <ListItem key={condition.id}>
+                                      <ListItemText primary={condition.condition_name} />
+                                    </ListItem>
+                                  ))}
+                                </List>
+                              </TableCell>
+                            </>
+                          )}
                           <TableCell>
                             <IconButton
                               className="action-button"
-                              onClick={() => handleViewReports(member.dependentId)} // For dependents
+                              onClick={() => handleViewReports(member.dependentId)}
                             >
-                              <Description /> {/* Replace with a "Report" icon if needed */}
+                              <Description />
                             </IconButton>
                           </TableCell>
                         </TableRow>

@@ -28,7 +28,10 @@ import {
   DialogTitle,
   DialogContent,
   DialogContentText,
-  DialogActions
+  DialogActions,
+  List,
+  ListItem,
+  ListItemText
 } from "@mui/material";
 import {
   Upload,
@@ -70,6 +73,10 @@ const EmployeeReports = () => {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [deleteReason, setDeleteReason] = useState("");
   const [selectedReportId, setSelectedReportId] = useState(null);
+  const [instructions, setInstructions] = useState({});
+  const [newInstruction, setNewInstruction] = useState("");
+  const [isInstructionDialogOpen, setIsInstructionDialogOpen] = useState(false);
+  const [selectedReportForInstruction, setSelectedReportForInstruction] = useState(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -101,6 +108,18 @@ const EmployeeReports = () => {
       setError("Failed to fetch reports. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchInstructions = async (reportId) => {
+    try {
+      const response = await api.get(`/instructions/${reportId}`);
+      setInstructions((prev) => ({
+        ...prev,
+        [reportId]: response.data,
+      }));
+    } catch (error) {
+      console.error("Error fetching instructions:", error);
     }
   };
 
@@ -535,6 +554,9 @@ const EmployeeReports = () => {
                         </Box>
                       </TableCell>
                       <TableCell>Notes</TableCell>
+                      {["DOCTOR", "ADMIN"].includes(user.role) && (
+                      <TableCell>Instructions</TableCell>
+                      )}
                       <TableCell>
                         <Box display="flex" alignItems="center">
                           Date
@@ -557,65 +579,75 @@ const EmployeeReports = () => {
                   <TableBody>
                     {currentReports.map((report) => (
                       <TableRow key={report.id} hover>
-                        <TableCell>
-                          <Typography fontWeight="500">{report.file_name}</Typography>
-                        </TableCell>
+                        <TableCell>{report.file_name}</TableCell>
                         <TableCell>
                           <Chip
-                            label={report.report_subtype === "General" 
-                              ? report.report_type || "N/A" 
-                              : report.report_subtype || "N/A"}
+                            label={report.report_subtype === "General" ? report.report_type : report.report_subtype}
                             size="small"
                             sx={{
                               backgroundColor: getTypeColor(report.report_type),
-                              color: 'white'
+                              color: "white",
                             }}
                           />
                         </TableCell>
-                        <TableCell>
-                          <Typography 
-                            variant="body2" 
-                            color={report.notes ? "text.primary" : "text.disabled"}
-                            sx={{
-                              whiteSpace: 'nowrap',
-                              overflow: 'hidden',
-                              textOverflow: 'ellipsis',
-                              maxWidth: '200px'
-                            }}
-                          >
-                            {report.notes || "No notes"}
-                          </Typography>
-                        </TableCell>
+                        <TableCell>{report.notes || "No notes"}</TableCell>
+                        {["DOCTOR", "ADMIN"].includes(user.role) && (
+                          <TableCell>
+                            <List>
+                              {(instructions[report.id] || []).length > 0 ? (
+                                instructions[report.id].map((instruction) => (
+                                  <ListItem key={instruction.id}>
+                                    <ListItemText
+                                      primary={instruction.instruction}
+                                      secondary={`By: ${instruction.created_by} at ${new Date(
+                                        instruction.created_at
+                                      ).toLocaleString()}`}
+                                    />
+                                  </ListItem>
+                                ))
+                              ) : (
+                                <Typography variant="body2" color="text.secondary">
+                                  No instructions available
+                                </Typography>
+                              )}
+                            </List>
+                            <Button
+                              variant="text"
+                              size="small"
+                              onClick={() => {
+                                fetchInstructions(report.id);
+                                setSelectedReportForInstruction(report.id);
+                                setIsInstructionDialogOpen(true);
+                              }}
+                            >
+                              Add/View Instructions
+                            </Button>
+                          </TableCell>
+                        )}
                         <TableCell>{formatDate(report.uploaded_at)}</TableCell>
                         <TableCell align="center">
                           <Stack direction="row" spacing={1} justifyContent="center">
                             <Tooltip title="View Report">
-                              <IconButton
-                                color="primary"
-                                onClick={() => handleViewReport(report.id)}
-                              >
+                              <IconButton color="primary" onClick={() => handleViewReport(report.id)}>
                                 <Visibility />
                               </IconButton>
                             </Tooltip>
-                            {(user.role === "EMPLOYEE") && (
-                            <Tooltip title="Download Report">
-                              <IconButton
-                                color="secondary"
-                                onClick={() => handleDownloadReport(report.id, report.file_name)}
-                              >
-                                <Download />
-                              </IconButton>
-                            </Tooltip>
+                            {user.role === "EMPLOYEE" && (
+                              <Tooltip title="Download Report">
+                                <IconButton
+                                  color="secondary"
+                                  onClick={() => handleDownloadReport(report.id, report.file_name)}
+                                >
+                                  <Download />
+                                </IconButton>
+                              </Tooltip>
                             )}
                             {(user.role === "TECHNICIAN" || user.role === "ADMIN") && (
-                            <Tooltip title="Delete Report">
-                              <IconButton
-                                color="error"
-                                onClick={() => handleDeleteClick(report.id)}
-                              >
-                                <Delete />
-                              </IconButton>
-                            </Tooltip>
+                              <Tooltip title="Delete Report">
+                                <IconButton color="error" onClick={() => handleDeleteClick(report.id)}>
+                                  <Delete />
+                                </IconButton>
+                              </Tooltip>
                             )}
                           </Stack>
                         </TableCell>
@@ -683,6 +715,68 @@ const EmployeeReports = () => {
           </Button>
           <Button onClick={handleDeleteReport} color="error">
             Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog
+        open={isInstructionDialogOpen}
+        onClose={() => setIsInstructionDialogOpen(false)}
+      >
+        <DialogTitle>Instructions for Report</DialogTitle>
+        <DialogContent>
+          <List>
+            {(instructions[selectedReportForInstruction] || []).length > 0 ? (
+              instructions[selectedReportForInstruction].map((instruction) => (
+                <ListItem key={instruction.id}>
+                  <ListItemText
+                    primary={instruction.instruction}
+                    secondary={`By: ${instruction.created_by} at ${new Date(
+                      instruction.created_at
+                    ).toLocaleString()}`}
+                  />
+                </ListItem>
+              ))
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No instructions available
+              </Typography>
+            )}
+          </List>
+          <TextField
+            fullWidth
+            multiline
+            rows={4}
+            label="Add New Instruction"
+            value={newInstruction}
+            onChange={(e) => setNewInstruction(e.target.value)}
+            sx={{ mt: 2 }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsInstructionDialogOpen(false)}>Cancel</Button>
+          <Button
+            onClick={async () => {
+              try {
+                const response = await api.post("/instructions", {
+                  reportId: selectedReportForInstruction,
+                  instruction: newInstruction,
+                });
+                setInstructions((prev) => ({
+                  ...prev,
+                  [selectedReportForInstruction]: [
+                    ...(prev[selectedReportForInstruction] || []),
+                    response.data,
+                  ],
+                }));
+                setNewInstruction("");
+              } catch (error) {
+                console.error("Error adding instruction:", error);
+              }
+            }}
+            color="primary"
+          >
+            Add Instruction
           </Button>
         </DialogActions>
       </Dialog>
