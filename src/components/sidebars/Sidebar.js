@@ -11,13 +11,12 @@ const Sidebar = ({ isOpen, toggleSidebar, onTabClick }) => {
     EMPLOYEE: [
       { text: "Dashboard", icon: <Home />, path: "/employee/dashboard" },
       { text: "Profile", icon: <Person />, path: "/employee/profile" },
-      // { text: "Reports", icon: <Description />, path: "/employee/reports" },
       { text: "Doctors", icon: <LocalHospital />, path: "/employee/doctorsList" },
     ],
     ADMIN: [
       { text: "Dashboard", icon: <Home />, path: "/admin/dashboard" },
       { text: "Profile", icon: <Person />, path: "/admin/profile" },
-      { text: "Employee", icon: <People />, path: "/admin/employeesList" },
+      { text: "Employees", icon: <People />, path: "/admin/employeesList" },
       { text: "Doctors", icon: <LocalHospital />, path: "/admin/doctorsList" },
       { text: "Technicians", icon: <LocalHospital />, path: "/admin/techniciansList" },
     ],
@@ -25,12 +24,13 @@ const Sidebar = ({ isOpen, toggleSidebar, onTabClick }) => {
       { text: "Dashboard", icon: <Home />, path: "/doctor/dashboard" },
       { text: "Profile", icon: <Person />, path: "/doctor/profile" },
       { text: "Employees", icon: <People />, path: "/doctor/employeesList" },
-      { text: "Technicians", icon: <LocalHospital />, path: "/doctor/technicianList" },
+      { text: "Technicians", icon: <LocalHospital />, path: "/doctor/techniciansList" },
     ],
     TECHNICIAN: [
       { text: "Dashboard", icon: <Home />, path: "/technician/dashboard" },
       { text: "Profile", icon: <Person />, path: "/technician/profile" },
-      { text: "Employee", icon: <People />, path: "/technician/employeesList" },
+      { text: "Employees", icon: <People />, path: "/technician/employeesList" },
+      { text: "Doctors", icon: <LocalHospital />, path: "/technician/doctorsList" },
     ],
     
   };

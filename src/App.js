@@ -15,6 +15,8 @@ import ProtectedRoute from "./utils/ProtectedRoute";
 import Unauthorized from "./pages/auth/Unauthorized";
 import UnifiedLayout from "./layouts/UnifiedLayout"; 
 import EmployeeDirectory from "./pages/EmployeeDirectory";
+import DoctorsList from "./pages/DoctorsList";
+import TechniciansList from "./pages/TechnicianList";
 import EmployeeReports from "./pages/EmployeeReports";
 import FileUploadPage from "./utils/FileUpload";
 
@@ -40,6 +42,7 @@ function App() {
             <Route path="dashboard" element={<EmployeeDashboard />} />
             <Route path="profile" element={<Profile />} />
             <Route path="reports/:employeeId" element={<EmployeeReports />} />
+            <Route path="doctorsList" element={<DoctorsList />} />
 
             <Route
               path="directory"
@@ -62,6 +65,7 @@ function App() {
             <Route path="dashboard" element={<DoctorDashboard />} />
             <Route path="profile" element={<Profile />} />
             <Route path="employeesList" element={<EmployeeDirectory />} />
+            <Route path="techniciansList" element={<TechniciansList />} />
             <Route path="reports/:employeeId" element={<EmployeeReports />} />
           </Route>
 
@@ -74,10 +78,11 @@ function App() {
             }
           >
             <Route path="dashboard" element={<TechnicianDashboard />} />
-            <Route path="employeesList" element={<EmployeeDirectory />} />
             <Route path="profile" element={<Profile />} />
             <Route path="reports/:employeeId" element={<EmployeeReports />} />
             <Route path="upload-reports/:employeeId" element={<FileUploadPage />} />
+            <Route path="employeesList" element={<EmployeeDirectory />} />
+            <Route path="doctorsList" element={<DoctorsList />} />
           </Route>
 
           <Route
@@ -90,8 +95,10 @@ function App() {
           >
             <Route path="dashboard" element={<AdminDashboard />} />
             <Route path="profile" element={<Profile />} />
-            <Route path="employeesList" element={<EmployeeDirectory />} />
             <Route path="reports/:employeeId" element={<EmployeeReports />} />
+            <Route path="employeesList" element={<EmployeeDirectory />} />
+            <Route path="doctorsList" element={<DoctorsList />} />
+            <Route path="techniciansList" element={<TechniciansList />} />
           </Route>
 
           {/* 404 Page */}
