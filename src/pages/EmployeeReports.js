@@ -44,7 +44,8 @@ import {
   ArrowUpward,
   ArrowDownward,
   Close,
-  Delete
+  Delete,
+  History
 } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../utils/api";
@@ -77,6 +78,8 @@ const EmployeeReports = () => {
   const [newInstruction, setNewInstruction] = useState("");
   const [isInstructionDialogOpen, setIsInstructionDialogOpen] = useState(false);
   const [selectedReportForInstruction, setSelectedReportForInstruction] = useState(null);
+  const [metadataDialogOpen, setMetadataDialogOpen] = useState(false);
+  const [selectedMetadata, setSelectedMetadata] = useState(null);
   const { user } = useAuth();
   const navigate = useNavigate();
 
@@ -102,8 +105,21 @@ const EmployeeReports = () => {
     setError(null);
     try {
       const response = await api.get(`/reports/${employeeId}`);
-      setReports(response.data);
-      setFilteredReports(response.data);
+      const reports = response.data;
+
+      // Fetch the latest feedback for all reports
+      const feedbackResponse = await api.get(`/instructions/latest/${employeeId}`);
+      const feedbackData = feedbackResponse.data;
+
+      // Map feedback to the corresponding report ID
+      const feedbackMap = feedbackData.reduce((acc, feedback) => {
+        acc[feedback.report_id] = [feedback];
+        return acc;
+      }, {});
+
+      setReports(reports);
+      setFilteredReports(reports);
+      setInstructions(feedbackMap); // Store the latest feedback in the state
     } catch (error) {
       setError("Failed to fetch reports. Please try again.");
     } finally {
@@ -116,10 +132,23 @@ const EmployeeReports = () => {
       const response = await api.get(`/instructions/${reportId}`);
       setInstructions((prev) => ({
         ...prev,
-        [reportId]: response.data,
+        [reportId]: response.data.sort(
+          (a, b) => new Date(b.created_at) - new Date(a.created_at)
+        ),
       }));
     } catch (error) {
       console.error("Error fetching instructions:", error);
+    }
+  };
+
+  const fetchReportMetadata = async (reportId) => {
+    try {
+      const response = await api.get(`/reports/metadata/${reportId}`);
+      setSelectedMetadata(response.data);
+      setMetadataDialogOpen(true);
+    } catch (error) {
+      console.error("Error fetching report metadata:", error);
+      setError("Failed to fetch report metadata. Please try again.");
     }
   };
 
@@ -523,7 +552,7 @@ const EmployeeReports = () => {
                     <TableRow>
                       <TableCell>
                         <Box display="flex" alignItems="center">
-                          File Name
+                          Report ID
                           <IconButton
                             size="small"
                             onClick={() => handleSort("file_name")}
@@ -555,7 +584,9 @@ const EmployeeReports = () => {
                       </TableCell>
                       <TableCell>Notes</TableCell>
                       {["DOCTOR", "ADMIN"].includes(user.role) && (
-                      <TableCell>Instructions</TableCell>
+                     <TableCell>
+                     Feedback
+                   </TableCell>
                       )}
                       <TableCell>
                         <Box display="flex" alignItems="center">
@@ -579,7 +610,22 @@ const EmployeeReports = () => {
                   <TableBody>
                     {currentReports.map((report) => (
                       <TableRow key={report.id} hover>
-                        <TableCell>{report.file_name}</TableCell>
+                        <TableCell
+                          className="report-id-cell"
+                          onClick={() => fetchReportMetadata(report.id)}
+                          sx={{
+                            cursor: "pointer",
+                            color: "primary.main",
+                            fontWeight: "bold",
+                            "&:hover": {
+                              textDecoration: "underline",
+                            },
+                          }}
+                        >
+                          <Tooltip title="Click to view Report Details">
+                            <span>{report.id}</span>
+                          </Tooltip>
+                        </TableCell>
                         <TableCell>
                           <Chip
                             label={report.report_subtype === "General" ? report.report_type : report.report_subtype}
@@ -593,40 +639,40 @@ const EmployeeReports = () => {
                         <TableCell>{report.notes || "No notes"}</TableCell>
                         {["DOCTOR", "ADMIN"].includes(user.role) && (
                           <TableCell>
-                            <List>
-                              {(instructions[report.id] || []).length > 0 ? (
-                                instructions[report.id].map((instruction) => (
-                                  <ListItem key={instruction.id}>
-                                    <ListItemText
-                                      primary={instruction.instruction}
-                                      secondary={`By: ${instruction.created_by} at ${new Date(
-                                        instruction.created_at
-                                      ).toLocaleString()}`}
-                                    />
-                                  </ListItem>
-                                ))
-                              ) : (
-                                <Typography variant="body2" color="text.secondary">
-                                  No instructions available
+                            {(instructions[report.id] || []).length > 0 ? (
+                              <Box>
+                                <Typography variant="body2" color="text.primary">
+                                  {instructions[report.id][0].instruction} {/* Show only the latest feedback */}
                                 </Typography>
-                              )}
-                            </List>
-                            <Button
-                              variant="text"
-                              size="small"
-                              onClick={() => {
-                                fetchInstructions(report.id);
-                                setSelectedReportForInstruction(report.id);
-                                setIsInstructionDialogOpen(true);
-                              }}
-                            >
-                              Add/View Instructions
-                            </Button>
+                                <Typography variant="caption" color="text.secondary">
+                                  {new Date(instructions[report.id][0].created_at).toLocaleString()} by{" "}
+                                  <strong>{instructions[report.id][0].creator?.name}</strong>
+                                </Typography>
+                              </Box>
+                            ) : (
+                              <Typography variant="body2" color="text.secondary">
+                                No feedback available
+                              </Typography>
+                            )}
                           </TableCell>
                         )}
                         <TableCell>{formatDate(report.uploaded_at)}</TableCell>
                         <TableCell align="center">
                           <Stack direction="row" spacing={1} justifyContent="center">
+                          {(user.role === "DOCTOR" || user.role === "ADMIN") && (
+                            <Tooltip title="View Feedback History">
+                              <IconButton
+                                color="primary"
+                                onClick={() => {
+                                  fetchInstructions(report.id);
+                                  setSelectedReportForInstruction(report.id);
+                                  setIsInstructionDialogOpen(true);
+                                }}
+                              >
+                                <History />
+                              </IconButton>
+                            </Tooltip>
+                          )}
                             <Tooltip title="View Report">
                               <IconButton color="primary" onClick={() => handleViewReport(report.id)}>
                                 <Visibility />
@@ -720,63 +766,216 @@ const EmployeeReports = () => {
       </Dialog>
 
       <Dialog
-        open={isInstructionDialogOpen}
-        onClose={() => setIsInstructionDialogOpen(false)}
+  open={isInstructionDialogOpen}
+  onClose={() => setIsInstructionDialogOpen(false)}
+  maxWidth="md"
+  fullWidth
+>
+  <DialogTitle>
+    <Box display="flex" justifyContent="space-between" alignItems="center">
+      <span>Report Instructions</span>
+      <IconButton onClick={() => setIsInstructionDialogOpen(false)}>
+        <Close />
+      </IconButton>
+    </Box>
+  </DialogTitle>
+  <DialogContent dividers>
+    <Box mb={3}>
+      <Typography variant="h6" gutterBottom>
+        Add New Instruction
+      </Typography>
+      <TextField
+        fullWidth
+        multiline
+        rows={3}
+        variant="outlined"
+        label="New instruction"
+        value={newInstruction}
+        onChange={(e) => setNewInstruction(e.target.value)}
+      />
+    </Box>
+    
+    <Divider />
+    
+    <Box mt={3}>
+      <Typography variant="h6" gutterBottom>
+        Instruction History
+      </Typography>
+      {instructions[selectedReportForInstruction]?.length > 0 ? (
+        <List dense>
+          {instructions[selectedReportForInstruction].map((instruction, index) => (
+            <ListItem key={instruction.id} alignItems="flex-start">
+              <ListItemText
+                primary={
+                  <Box display="flex" justifyContent="space-between">
+                    <Typography variant="body1">
+                      {instruction.instruction}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {index === 0 && (
+                        <Chip 
+                          label="Latest" 
+                          size="small" 
+                          color="primary" 
+                          variant="outlined" 
+                        />
+                      )}
+                    </Typography>
+                  </Box>
+                }
+                secondary={
+                  <Typography variant="caption" color="text.secondary">
+                    By {instruction.created_by} • {new Date(instruction.created_at).toLocaleString()}
+                  </Typography>
+                }
+              />
+              {index < instructions[selectedReportForInstruction].length - 1 && (
+                <Divider variant="inset" component="li" />
+              )}
+            </ListItem>
+          ))}
+        </List>
+      ) : (
+        <Typography variant="body2" color="text.secondary">
+          No instruction history available
+        </Typography>
+      )}
+    </Box>
+  </DialogContent>
+  <DialogActions>
+    <Button onClick={() => setIsInstructionDialogOpen(false)}>Cancel</Button>
+    <Button
+      onClick={async () => {
+        if (!newInstruction.trim()) return;
+        
+        try {
+          const response = await api.post("/instructions", {
+            reportId: selectedReportForInstruction,
+            instruction: newInstruction,
+          });
+          
+          setInstructions((prev) => ({
+            ...prev,
+            [selectedReportForInstruction]: [
+              response.data,
+              ...(prev[selectedReportForInstruction] || []),
+            ],
+          }));
+          setNewInstruction("");
+        } catch (error) {
+          console.error("Error adding instruction:", error);
+        }
+      }}
+      color="primary"
+      variant="contained"
+      disabled={!newInstruction.trim()}
+    >
+      Add Instruction
+    </Button>
+  </DialogActions>
+</Dialog>
+
+      <Dialog
+        open={metadataDialogOpen}
+        onClose={() => setMetadataDialogOpen(false)}
+        maxWidth="md"
+        fullWidth
       >
-        <DialogTitle>Instructions for Report</DialogTitle>
-        <DialogContent>
-          <List>
-            {(instructions[selectedReportForInstruction] || []).length > 0 ? (
-              instructions[selectedReportForInstruction].map((instruction) => (
-                <ListItem key={instruction.id}>
-                  <ListItemText
-                    primary={instruction.instruction}
-                    secondary={`By: ${instruction.created_by} at ${new Date(
-                      instruction.created_at
-                    ).toLocaleString()}`}
-                  />
-                </ListItem>
-              ))
-            ) : (
-              <Typography variant="body2" color="text.secondary">
-                No instructions available
-              </Typography>
-            )}
-          </List>
-          <TextField
-            fullWidth
-            multiline
-            rows={4}
-            label="Add New Instruction"
-            value={newInstruction}
-            onChange={(e) => setNewInstruction(e.target.value)}
-            sx={{ mt: 2 }}
-          />
+        <DialogTitle>
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <Typography variant="h6">Report Metadata</Typography>
+            <IconButton onClick={() => setMetadataDialogOpen(false)}>
+              <Close />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          {selectedMetadata ? (
+            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  <strong>Report ID:</strong>
+                </Typography>
+                <Typography variant="body1">{selectedMetadata.id}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  <strong>Employee ID:</strong>
+                </Typography>
+                <Typography variant="body1">{selectedMetadata.employee_id}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  <strong>Report Type:</strong>
+                </Typography>
+                <Typography variant="body1">{selectedMetadata.report_type}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  <strong>Report Subtype:</strong>
+                </Typography>
+                <Typography variant="body1">{selectedMetadata.report_subtype || "N/A"}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  <strong>Uploaded By:</strong>
+                </Typography>
+                <Typography variant="body1">{selectedMetadata.uploaded_by}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  <strong>Uploaded At:</strong>
+                </Typography>
+                <Typography variant="body1">
+                  {new Date(selectedMetadata.uploaded_at).toLocaleString()}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  <strong>Notes:</strong>
+                </Typography>
+                <Typography variant="body1">{selectedMetadata.notes || "No notes"}</Typography>
+              </Box>
+              <Box>
+                <Typography variant="subtitle2" color="text.secondary">
+                  <strong>Is Deleted:</strong>
+                </Typography>
+                <Typography variant="body1">{selectedMetadata.is_deleted ? "Yes" : "No"}</Typography>
+              </Box>
+              {selectedMetadata.is_deleted && (
+                <>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      <strong>Deleted By:</strong>
+                    </Typography>
+                    <Typography variant="body1">{selectedMetadata.deleted_by}</Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      <strong>Deleted At:</strong>
+                    </Typography>
+                    <Typography variant="body1">
+                      {new Date(selectedMetadata.deleted_at).toLocaleString()}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary">
+                      <strong>Delete Reason:</strong>
+                    </Typography>
+                    <Typography variant="body1">{selectedMetadata.delete_reason}</Typography>
+                  </Box>
+                </>
+              )}
+            </Box>
+          ) : (
+            <Typography variant="body2" color="text.secondary">
+              No metadata available.
+            </Typography>
+          )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsInstructionDialogOpen(false)}>Cancel</Button>
-          <Button
-            onClick={async () => {
-              try {
-                const response = await api.post("/instructions", {
-                  reportId: selectedReportForInstruction,
-                  instruction: newInstruction,
-                });
-                setInstructions((prev) => ({
-                  ...prev,
-                  [selectedReportForInstruction]: [
-                    ...(prev[selectedReportForInstruction] || []),
-                    response.data,
-                  ],
-                }));
-                setNewInstruction("");
-              } catch (error) {
-                console.error("Error adding instruction:", error);
-              }
-            }}
-            color="primary"
-          >
-            Add Instruction
+          <Button onClick={() => setMetadataDialogOpen(false)} variant="outlined">
+            Close
           </Button>
         </DialogActions>
       </Dialog>

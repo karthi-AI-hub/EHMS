@@ -146,3 +146,29 @@ Main Container
   background-color: #607d8b;
   color: white;
 }
+
+/* Report ID Cell */
+.report-id-cell {
+  cursor: pointer;
+  color: var(--primary-color);
+  font-weight: bold;
+  transition: color 0.3s ease, text-decoration 0.3s ease;
+}
+
+.report-id-cell:hover {
+  text-decoration: underline;
+  color: var(--primary-hover-color);
+}
+
+.instruction-history-item {
+  transition: background-color 0.2s ease;
+}
+
+.instruction-history-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.latest-instruction {
+  border-left: 3px solid #1976d2;
+  padding-left: 8px;
+}
