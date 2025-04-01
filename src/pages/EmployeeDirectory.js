@@ -138,9 +138,6 @@ const EmployeeDirectory = () => {
               api.get(`/allergies/latest/${employee.employeeId}`),
               api.get(`/conditions/latest/${employee.employeeId}`),
             ]);
-            console.log("Latest Allergy Response:", latestAllergyResponse.data);
-            console.log("Latest Condition Response:", latestConditionResponse.data);
-
             return {
               ...employee,
               latestAllergy: latestAllergyResponse.data?.allergy_name || "-",
