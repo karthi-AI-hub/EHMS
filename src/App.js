@@ -6,8 +6,6 @@ import NotFound from "./pages/NotFound";
 import AuthLogin from "./pages/auth/AuthLogin";
 import EmployeeDashboard from "./pages/dashboard/EmployeeDashboard";
 import Profile from "./pages/Profile";
-import DoctorDashboard from "./pages/dashboard/DoctorDashboard";
-import TechnicianDashboard from "./pages/dashboard/TechnicianDashboard";
 import ChangePassword from "./pages/auth/ChangePassword";
 import ProtectedRoute from "./utils/ProtectedRoute";
 import Unauthorized from "./pages/auth/Unauthorized";
@@ -61,7 +59,7 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="dashboard" element={<DoctorDashboard />} />
+            <Route path="dashboard" element={<Analytics />} />
             <Route path="profile" element={<Profile />} />
             <Route path="employeesList" element={<EmployeeDirectory />} />
             <Route path="techniciansList" element={<TechniciansList />} />
@@ -98,7 +96,7 @@ function App() {
             <Route path="employeesList" element={<EmployeeDirectory />} />
             <Route path="doctorsList" element={<DoctorsList />} />
             <Route path="techniciansList" element={<TechniciansList />} />
-
+            <Route path="reportAnalytics" element={<Analytics />} />
           </Route>
 
           {/* 404 Page */}

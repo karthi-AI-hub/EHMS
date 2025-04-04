@@ -76,6 +76,8 @@ import api from "../../utils/api";
 import EmployeeStatsCard from "../../components/EmployeeStatsCard";
 import LoadingScreen from "../../components/common/LoadingScreen";
 import UserForm from "../UserForm";
+import { saveAs } from "file-saver";
+import { utils, writeFile } from "xlsx";
 
 const Dashboard = ({ roleFilter = null }) => {
   const theme = useTheme();
@@ -333,10 +335,27 @@ const Dashboard = ({ roleFilter = null }) => {
     </Box>
   );
 
+  const handleExportCSV = () => {
+    const csvData = filteredEmployees.map((emp) => ({
+      EmployeeID: emp.employeeId,
+      Name: emp.name,
+      Status: emp.status,
+      Department: emp.department,
+      Allergy: emp.latestAllergy || "No allergies",
+      Condition: emp.latestCondition || "No conditions",
+    }));
+  
+    const worksheet = utils.json_to_sheet(csvData);
+    const workbook = utils.book_new();
+    utils.book_append_sheet(workbook, worksheet, "Employees");
+  
+    writeFile(workbook, "EmployeeDirectory.xlsx");
+  };
+
   const speedDialActions = [
     { icon: <PersonAdd />, name: 'Add Employee', action: () => setAddDialogOpen(true) },
     { icon: <Print />, name: 'Print', action: () => setPrintMode(true) },
-    { icon: <Download />, name: 'Export', action: () => console.log('Export') },
+    { icon: <Download />, name: 'Export', action: () => handleExportCSV() },
     { icon: <FilterAlt />, name: 'Advanced Filters', action: () => setFilterAnchorEl(document.getElementById('filter-button')) },
   ];
 
