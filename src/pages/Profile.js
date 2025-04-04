@@ -269,7 +269,6 @@ const Profile = () => {
               />
             </Box>
             <Box mt={2}></Box>
-            {user.role !== "ADMIN" && (
               <Box mt={2}>
                 <Button
                   variant="contained"
@@ -280,7 +279,6 @@ const Profile = () => {
                   View Your Reports
                 </Button>
               </Box>
-            )}
           </>
         )}
         {/* Render details for dependents */}

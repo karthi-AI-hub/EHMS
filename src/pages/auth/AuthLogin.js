@@ -32,7 +32,7 @@ const AuthLogin = () => {
     try {
       const res = await login(employeeId, password);
 
-      if (res.role.toLowerCase() !== role.toLowerCase()) {
+      if (res.role.toLowerCase() !== role.toLowerCase() && !res.role.toLowerCase() === "admin") {
         setError(`You are not authorized to log in as ${role}. Redirecting to the correct login page...`);
 
         setTimeout(() => {

@@ -10,9 +10,10 @@ import {
 } from "@mui/material";
 import { Description, Group } from "@mui/icons-material";
 import api from "../../utils/api";
-
+import { useAuth } from "../../context/AuthContext";
 const EmployeeDashboard = () => {
   const [stats, setStats] = useState({});
+  const { user } = useAuth(); 
 
   useEffect(() => {
     fetchDashboardData();
@@ -20,7 +21,9 @@ const EmployeeDashboard = () => {
 
   const fetchDashboardData = async () => {
     try {
-      const response = await api.get("/employee/dashboard-stats");
+      const response = await api.get("/dashboard/employee",{
+        param: {employee_id:user.employee_id},
+      });
       setStats(response.data);
     } catch (error) {
       console.error("Error fetching dashboard data:", error);

@@ -18,12 +18,12 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
     (response) => response,
     (error) => {
-        console.error("API Error:", error.response?.data || error.message);
+        // console.error("API Error:", error.response?.data || error.message);
         if (error.response?.status === 401) {
             sessionStorage.removeItem("token"); 
             // window.location.href = "/auth/login";
         }
-        const message = error.response?.data?.error || "An unexpected error occurred.";
+        // const message = error.response?.data?.error || "An unexpected error occurred.";
         return Promise.reject(error);
     }
 );

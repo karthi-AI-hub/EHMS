@@ -47,10 +47,14 @@ import {
   Warning,
   Info,
   Refresh,
+  PauseCircle,
+  SwapHoriz,
 } from "@mui/icons-material";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { styled } from "@mui/material/styles";
+// import { saveAs } from "file-saver";
+// import { utils, writeFile } from "xlsx";
 import api from "../utils/api";
 import { useAuth } from "../context/AuthContext";
 import EmployeeProfile from "../components/common/EmployeeProfile";
@@ -343,10 +347,12 @@ const EmployeeDirectory = () => {
     switch (status) {
       case "active":
         return <CheckCircle fontSize="small" />;
-      case "pending":
-        return <Warning fontSize="small" />;
       case "inactive":
         return <Info fontSize="small" />;
+      case "onleave":
+        return <PauseCircle fontSize="small" />;
+      case "transferred":
+        return <SwapHoriz fontSize="small" />;
       default:
         return <Info fontSize="small" />;
     }
@@ -527,9 +533,13 @@ const EmployeeDirectory = () => {
                           color={
                             emp.status === "active"
                               ? "success"
-                              : emp.status === "pending"
+                              : emp.status === "inactive"
+                              ? "error"
+                              : emp.status === "on_leave"
                               ? "warning"
-                              : "error"
+                              : emp.status === "transferred"
+                              ? "secondary"
+                              : "primary"
                           }
                           variant="outlined"
                         />
@@ -642,9 +652,13 @@ const EmployeeDirectory = () => {
                               color={
                                 member.status === "active"
                                   ? "success"
-                                  : member.status === "pending"
+                                  : member.status === "inactive"
+                                  ? "error"
+                                  : member.status === "on_leave"
                                   ? "warning"
-                                  : "error"
+                                  : member.status === "transferred"
+                                  ? "secondary"
+                                  : "info"
                               }
                               variant="outlined"
                             />
@@ -736,6 +750,7 @@ const EmployeeDirectory = () => {
                   <MenuItem value={10}>10</MenuItem>
                   <MenuItem value={25}>25</MenuItem>
                   <MenuItem value={50}>50</MenuItem>
+                  <MenuItem value={100}>100</MenuItem> 
                 </Select>
               </FormControl>
             </Box>
@@ -882,7 +897,7 @@ const EmployeeDirectory = () => {
           <Box>
             <Typography gutterBottom>Status</Typography>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-              {["active", "pending", "inactive"].map((status) => (
+              {["active", "inactive", "on_leave", "transferred"].map((status) => (
                 <Chip
                   key={status}
                   label={status}

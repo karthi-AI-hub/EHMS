@@ -14,8 +14,6 @@ import {
     Tooltip,
     Chip,
     Avatar,
-    Tabs,
-    Tab,
     Button,
     Dialog,
     DialogTitle,
@@ -23,11 +21,7 @@ import {
     DialogActions,
     Divider,
     InputAdornment,
-    CircularProgress,
-    Badge,
-    Menu,
     MenuItem,
-    Fade,
     Slide,
     FormControl,
     InputLabel,
@@ -35,18 +29,11 @@ import {
     Alert,
     TableSortLabel,
     Select,
-    Switch,
     Pagination,
-    Card,
-    CardContent,
-    CardHeader,
-    CardActions,
     List,
     ListItem,
     ListItemAvatar,
     ListItemText,
-    Breadcrumbs,
-    Link,
     SpeedDial,
     SpeedDialAction,
     SpeedDialIcon,
@@ -66,49 +53,31 @@ import {
     Phone,
     LocationOn,
     Work,
-    Groups,
     Close,
     KeyboardArrowDown,
     KeyboardArrowUp,
-    Add,
-    Edit,
-    Share,
     Print,
-    Favorite,
     Delete,
-    Visibility,
     Download,
-    MoreVert,
-    Home,
     People,
-    Assignment,
-    Settings,
-    Star,
-    StarBorder,
     CheckCircle,
     Warning,
     Error as ErrorIcon,
-    CalendarToday,
-    AccessTime,
     PersonAdd,
     FilterAlt,
-    Sort,
-    ViewModule,
-    ViewList,
-    GridView,
-    TableRows,
-    DarkMode,
-    LightMode
+    PauseCircle,
+    SwapHoriz,
+    Edit,
   } from "@mui/icons-material";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
-import api from "../utils/api";
-import EmployeeQuickView from "../components/EmployeeQuickView";
-import EmployeeStatsCard from "../components/EmployeeStatsCard";
-import CustomPagination from "../components/CustomPagination";
+import api from "../../utils/api";
+import EmployeeStatsCard from "../../components/EmployeeStatsCard";
+import LoadingScreen from "../../components/common/LoadingScreen";
+import UserForm from "../UserForm";
 
-const EmployeeDirectory = ({ roleFilter = null }) => {
+const Dashboard = ({ roleFilter = null }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const controls = useAnimation();
@@ -122,8 +91,6 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
   const [sortConfig, setSortConfig] = useState({ key: "name", direction: "asc" });
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [quickViewOpen, setQuickViewOpen] = useState(false);
-  const [viewMode, setViewMode] = useState("table");
   const [filterAnchorEl, setFilterAnchorEl] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
@@ -131,9 +98,10 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
   const [expandedEmployee, setExpandedEmployee] = useState(null);
   const [page, setPage] = useState(1);
   const [rowsPerPage, setRowsPerPage] = useState(10);
-  const [darkMode, setDarkMode] = useState(false);
   const [selectedEmployees, setSelectedEmployees] = useState([]);
-  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, onLeave: 0 });
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [addDialogOpen, setAddDialogOpen] = useState(false);
+  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, onLeave: 0, transferred: 0 });
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
   const [printMode, setPrintMode] = useState(false);
 
@@ -142,6 +110,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
       case "active": return "success";
       case "inactive": return "error";
       case "on_leave": return "warning";
+      case "transferred": return "secondary";
       default: return "default";
     }
   };
@@ -164,6 +133,14 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
     return Array.from(depts);
   }, [employees]);
 
+  const fetchEmployees = async () => {
+    try {
+      const response = await api.get("/allemployees");
+      setEmployees(response.data); 
+    } catch (error) {
+      console.error("Error fetching employees:", error);
+    }
+  };
   // Fetch employees with enhanced data
   useEffect(() => {
     const fetchEmployees = async () => {
@@ -172,8 +149,6 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
         const response = await api.get("/allemployees");
         let data = response.data.map(emp => ({
           ...emp,
-          joinDate: emp.joinDate || "2023-01-01", // Default if missing
-          lastActive: emp.lastActive || new Date().toISOString(),
         }));
 
         // Calculate stats
@@ -181,7 +156,8 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
           total: data.length,
           active: data.filter(e => e.status === "active").length,
           inactive: data.filter(e => e.status === "inactive").length,
-          onLeave: data.filter(e => e.status === "on_leave").length
+          onLeave: data.filter(e => e.status === "on_leave").length,
+          transferred: data.filter(e => e.status === "transferred").length,
         };
         setStats(statsData);
 
@@ -198,6 +174,23 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
     fetchEmployees();
     controls.start({ opacity: 1, y: 0 });
   }, [controls]);
+
+  const handleEdit = async (employeeId) => {
+    try {
+      const response = await api.get(`/employee/${employeeId}`);
+      setSelectedEmployee(response.data);
+      setEditDialogOpen(true);
+    } catch (error) {
+      console.error("Error fetching employee details:", error);
+    }
+  };
+
+  const handleEditSuccess = () => {
+    setEditDialogOpen(false);
+    setSelectedEmployee(null);
+    fetchEmployees();
+  };
+
 
   // Apply all filters and sorting
   useEffect(() => {
@@ -290,13 +283,8 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
     }
   };
 
-  const handleQuickView = (employee) => {
-    setSelectedEmployee(employee);
-    setQuickViewOpen(true);
-  };
-
   const handleViewReports = (employeeId) => {
-    navigate(`/reports/${employeeId}`);
+    navigate(`/admin/reports/${employeeId}`);
   };
 
   const handleSelectEmployee = (employeeId, event) => {
@@ -337,7 +325,8 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
     <Box display="flex" alignItems="center" gap={1}>
       {status === "active" && <CheckCircle color="success" fontSize="small" />}
       {status === "inactive" && <ErrorIcon color="error" fontSize="small" />}
-      {status === "on_leave" && <Warning color="warning" fontSize="small" />}
+      {status === "on_leave" && <PauseCircle color="warning" fontSize="small" />}
+      {status === "transferred" && <SwapHoriz color="info" fontSize="small" />}
       <Typography variant="caption" textTransform="capitalize">
         {status.replace("_", " ")}
       </Typography>
@@ -345,7 +334,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
   );
 
   const speedDialActions = [
-    { icon: <PersonAdd />, name: 'Add Employee', action: () => navigate('/employees/new') },
+    { icon: <PersonAdd />, name: 'Add Employee', action: () => setAddDialogOpen(true) },
     { icon: <Print />, name: 'Print', action: () => setPrintMode(true) },
     { icon: <Download />, name: 'Export', action: () => console.log('Export') },
     { icon: <FilterAlt />, name: 'Advanced Filters', action: () => setFilterAnchorEl(document.getElementById('filter-button')) },
@@ -360,7 +349,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
   return (
     <Box sx={{ 
       p: 3, 
-      backgroundColor: darkMode ? theme.palette.grey[900] : theme.palette.background.default,
+      backgroundColor: theme.palette.background.default,
       minHeight: '100vh'
     }}>
       {/* Header with Breadcrumbs */}
@@ -384,35 +373,12 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
             transition={{ duration: 0.5 }}
           >
             <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
-              {roleFilterLocal === "all" ? "Employee Directory" : 
-               `${roleFilterLocal.charAt(0) + roleFilterLocal.slice(1).toLowerCase()} Directory`}
+             Admin Dashboard
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
-              {filteredEmployees.length} {filteredEmployees.length === 1 ? "employee" : "employees"} found
+              {filteredEmployees.length} users found
             </Typography>
           </motion.div>
-
-          <Box sx={{ display: "flex", gap: 2, alignItems: 'center' }}>
-            <Tooltip title="Toggle dark mode">
-              <IconButton onClick={() => setDarkMode(!darkMode)}>
-                {darkMode ? <LightMode /> : <DarkMode />}
-              </IconButton>
-            </Tooltip>
-            <Button
-              variant={viewMode === "table" ? "contained" : "outlined"}
-              onClick={() => setViewMode("table")}
-              startIcon={<TableRows />}
-            >
-              Table
-            </Button>
-            <Button
-              variant={viewMode === "card" ? "contained" : "outlined"}
-              onClick={() => setViewMode("card")}
-              startIcon={<GridView />}
-            >
-              Cards
-            </Button>
-          </Box>
         </Box>
       </Box>
 
@@ -424,7 +390,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
       >
         <Box sx={{ 
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(5, 1fr)' },
           gap: 2,
           mb: 3
         }}>
@@ -449,8 +415,14 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
           <EmployeeStatsCard 
             title="On Leave" 
             value={stats.onLeave} 
-            icon={<Warning />} 
+            icon={<PauseCircle />} 
             color="warning" 
+          />
+           <EmployeeStatsCard 
+            title="Transferred" 
+            value={stats.transferred} 
+            icon={<SwapHoriz />} 
+            color="secondary" 
           />
         </Box>
       </motion.div>
@@ -488,7 +460,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
               ),
               sx: {
                 borderRadius: "50px",
-                backgroundColor: darkMode ? theme.palette.grey[800] : theme.palette.background.paper
+                backgroundColor: theme.palette.background.paper
               }
             }}
             sx={{
@@ -505,13 +477,15 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
                 label="Status"
                 sx={{
                   borderRadius: "50px",
-                  backgroundColor: darkMode ? theme.palette.grey[800] : theme.palette.background.paper
+                  backgroundColor: theme.palette.background.paper
                 }}
               >
                 <MenuItem value="all">All Statuses</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
                 <MenuItem value="inactive">Inactive</MenuItem>
                 <MenuItem value="on_leave">On Leave</MenuItem>
+                <MenuItem value="transferred">Transferred</MenuItem>
+
               </Select>
             </FormControl>
 
@@ -523,7 +497,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
                 label="Department"
                 sx={{
                   borderRadius: "50px",
-                  backgroundColor: darkMode ? theme.palette.grey[800] : theme.palette.background.paper
+                  backgroundColor: theme.palette.background.paper
                 }}
               >
                 <MenuItem value="all">All Departments</MenuItem>
@@ -541,14 +515,14 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
                 label="Role"
                 sx={{
                   borderRadius: "50px",
-                  backgroundColor: darkMode ? theme.palette.grey[800] : theme.palette.background.paper
+                  backgroundColor: theme.palette.background.paper
                 }}
               >
                 <MenuItem value="all">All Roles</MenuItem>
-                <MenuItem value="DOCTOR">Doctor</MenuItem>
-                <MenuItem value="TECHNICIAN">Technician</MenuItem>
-                <MenuItem value="ADMIN">Admin</MenuItem>
                 <MenuItem value="EMPLOYEE">Employee</MenuItem>
+                <MenuItem value="TECHNICIAN">Technician</MenuItem>
+                <MenuItem value="DOCTOR">Doctor</MenuItem>
+                <MenuItem value="ADMIN">Admin</MenuItem>
               </Select>
             </FormControl>
 
@@ -562,7 +536,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
                 }}
                 sx={{ 
                   borderRadius: "50%",
-                  backgroundColor: darkMode ? theme.palette.grey[800] : theme.palette.grey[200]
+                  backgroundColor: theme.palette.grey[200]
                 }}
               >
                 <Refresh />
@@ -583,7 +557,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
           <Paper elevation={2} sx={{ 
             p: 1, 
             mb: 2,
-            backgroundColor: darkMode ? theme.palette.grey[800] : theme.palette.primary.light,
+            backgroundColor: theme.palette.primary.light,
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between'
@@ -592,11 +566,6 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
               {selectedEmployees.length} selected
             </Typography>
             <Box>
-              <Tooltip title="Send message">
-                <IconButton size="small" sx={{ mr: 1 }}>
-                  <Email fontSize="small" />
-                </IconButton>
-              </Tooltip>
               <Tooltip title="Export selected">
                 <IconButton size="small" sx={{ mr: 1 }}>
                   <Download fontSize="small" />
@@ -639,19 +608,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
 
       {/* Loading State */}
       {loading && (
-        <Box sx={{ 
-          display: "flex", 
-          justifyContent: "center", 
-          alignItems: "center",
-          minHeight: '300px'
-        }}>
-          <motion.div
-            animate={{ rotate: 360 }}
-            transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
-          >
-            <CircularProgress size={60} thickness={4} />
-          </motion.div>
-        </Box>
+       <LoadingScreen message="Fetching Details..."/>
       )}
 
       {/* Empty State */}
@@ -664,15 +621,10 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
           <Paper elevation={2} sx={{ 
             textAlign: "center", 
             p: 4,
-            backgroundColor: darkMode ? theme.palette.grey[800] : theme.palette.background.paper,
+            backgroundColor: theme.palette.background.paper,
             borderRadius: 2
           }}>
             <Box sx={{ maxWidth: 300, mx: 'auto', mb: 2 }}>
-              <img 
-                src={darkMode ? "/images/empty-dark.svg" : "/images/empty-light.svg"} 
-                alt="No employees found" 
-                width="100%"
-              />
             </Box>
             <Typography variant="h6" gutterBottom>
               No employees found
@@ -699,7 +651,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
       )}
 
       {/* Table View */}
-      {!loading && filteredEmployees.length > 0 && viewMode === "table" && (
+      {!loading && filteredEmployees.length > 0 && (
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -709,12 +661,12 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
             borderRadius: 2,
             overflow: "hidden",
             mb: 2,
-            backgroundColor: darkMode ? theme.palette.grey[800] : undefined
+            backgroundColor: undefined
           }}>
             <TableContainer>
               <Table>
                 <TableHead sx={{ 
-                  backgroundColor: darkMode ? theme.palette.grey[700] : theme.palette.grey[100] 
+                  backgroundColor: theme.palette.grey[100] 
                 }}>
                   <TableRow>
                     <TableCell padding="checkbox" sx={{ width: '48px' }}>
@@ -814,10 +766,10 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
                         hover
                         sx={{
                           backgroundColor: selectedEmployees.includes(employee.employeeId) ? 
-                            (darkMode ? theme.palette.primary.dark : theme.palette.primary.light) : 
+                            (theme.palette.primary.light) : 
                             'inherit',
                           '&:hover': {
-                            backgroundColor: darkMode ? theme.palette.grey[700] : theme.palette.action.hover
+                            backgroundColor: theme.palette.action.hover
                           }
                         }}
                       >
@@ -836,7 +788,6 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
                               backgroundColor: theme.palette.primary.main,
                               cursor: 'pointer'
                             }}
-                            onClick={() => handleQuickView(employee)}
                           >
                             {employee.name.charAt(0)}
                           </Avatar>
@@ -854,9 +805,6 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
                               onClick={(e) => handleEmployeeClick(employee, e)}
                             >
                               {employee.name}
-                            </Typography>
-                            <Typography variant="body2" color="text.secondary">
-                              {employee.position || 'No position specified'}
                             </Typography>
                           </Box>
                         </TableCell>
@@ -878,7 +826,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
                             size="small"
                             icon={getRoleIcon(employee.role)}
                             sx={{
-                              backgroundColor: darkMode ? theme.palette.grey[700] : theme.palette.action.selected,
+                              backgroundColor: theme.palette.action.selected,
                             }}
                           />
                         </TableCell>
@@ -887,45 +835,19 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
                         </TableCell>
                         <TableCell align="right">
                           <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 1 }}>
-                            <Tooltip title="Quick view">
+                            <Tooltip title="Edit User">
                               <IconButton
-                                onClick={() => handleQuickView(employee)}
+                                onClick={() => handleEdit(employee.employeeId)}
                                 size="small"
+                                color="primary"
                                 sx={{
-                                  backgroundColor: darkMode ? theme.palette.grey[700] : theme.palette.action.hover,
+                                  backgroundColor: theme.palette.action.hover,
                                   "&:hover": {
-                                    backgroundColor: darkMode ? theme.palette.grey[600] : theme.palette.action.selected
+                                    backgroundColor: theme.palette.action.selected
                                   }
                                 }}
                               >
-                                <Visibility fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="View reports">
-                              <IconButton
-                                onClick={() => handleViewReports(employee.employeeId)}
-                                size="small"
-                                sx={{
-                                  backgroundColor: darkMode ? theme.palette.grey[700] : theme.palette.action.hover,
-                                  "&:hover": {
-                                    backgroundColor: darkMode ? theme.palette.grey[600] : theme.palette.action.selected
-                                  }
-                                }}
-                              >
-                                <Description fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                            <Tooltip title="More options">
-                              <IconButton
-                                size="small"
-                                sx={{
-                                  backgroundColor: darkMode ? theme.palette.grey[700] : theme.palette.action.hover,
-                                  "&:hover": {
-                                    backgroundColor: darkMode ? theme.palette.grey[600] : theme.palette.action.selected
-                                  }
-                                }}
-                              >
-                                <MoreVert fontSize="small" />
+                                <Edit fontSize="small" />
                               </IconButton>
                             </Tooltip>
                           </Box>
@@ -956,13 +878,14 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
                 label="Rows per page"
                 sx={{
                   borderRadius: "4px",
-                  backgroundColor: darkMode ? theme.palette.grey[800] : theme.palette.background.paper
+                  backgroundColor: theme.palette.background.paper
                 }}
               >
                 <MenuItem value={5}>5</MenuItem>
                 <MenuItem value={10}>10</MenuItem>
                 <MenuItem value={25}>25</MenuItem>
                 <MenuItem value={50}>50</MenuItem>
+                <MenuItem value={100}>100</MenuItem>
               </Select>
             </FormControl>
 
@@ -974,211 +897,16 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
               shape="rounded"
               showFirstButton
               showLastButton
-              sx={{
-                '& .MuiPaginationItem-root': {
-                  color: darkMode ? theme.palette.text.primary : undefined
-                }
-              }}
+              // sx={{
+              //   '& .MuiPaginationItem-root': {
+              //     color: darkMode ? theme.palette.text.primary : undefined
+              //   }
+              // }}
             />
 
             <Typography variant="body2" color="text.secondary">
               Showing {(page - 1) * rowsPerPage + 1}-{Math.min(page * rowsPerPage, filteredEmployees.length)} of {filteredEmployees.length} employees
             </Typography>
-          </Box>
-        </motion.div>
-      )}
-
-      {/* Card View */}
-      {!loading && filteredEmployees.length > 0 && viewMode === "card" && (
-        <motion.div
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
-        >
-          <Box sx={{ 
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))",
-            gap: 3,
-            mb: 3
-          }}>
-            {paginatedEmployees.map(employee => (
-              <motion.div
-                key={employee.employeeId}
-                variants={itemVariants}
-                whileHover={{ y: -5, scale: 1.02 }}
-                transition={{ duration: 0.2 }}
-              >
-                <Card 
-                  elevation={3} 
-                  sx={{ 
-                    borderRadius: 2,
-                    overflow: "hidden",
-                    transition: "all 0.3s ease",
-                    border: selectedEmployees.includes(employee.employeeId) ? 
-                      `2px solid ${theme.palette.primary.main}` : 'none',
-                    backgroundColor: darkMode ? theme.palette.grey[800] : undefined
-                  }}
-                >
-                  <CardHeader
-                    avatar={
-                      <Avatar
-                        src={employee.avatar}
-                        sx={{
-                          width: 56,
-                          height: 56,
-                          backgroundColor: theme.palette.primary.main,
-                          cursor: 'pointer'
-                        }}
-                        onClick={() => handleQuickView(employee)}
-                      >
-                        {employee.name.charAt(0)}
-                      </Avatar>
-                    }
-                    action={
-                      <Checkbox
-                        checked={selectedEmployees.includes(employee.employeeId)}
-                        onChange={(e) => handleSelectEmployee(employee.employeeId, e)}
-                        sx={{ mr: 1 }}
-                      />
-                    }
-                    title={
-                      <Typography 
-                        variant="h6" 
-                        sx={{ 
-                          cursor: 'pointer',
-                          '&:hover': {
-                            textDecoration: 'underline'
-                          }
-                        }}
-                        onClick={(e) => handleEmployeeClick(employee, e)}
-                      >
-                        {employee.name}
-                      </Typography>
-                    }
-                    subheader={
-                      <Typography variant="body2" color="text.secondary">
-                        {employee.position || 'No position specified'}
-                      </Typography>
-                    }
-                    sx={{
-                      backgroundColor: darkMode ? theme.palette.grey[700] : theme.palette.primary.main,
-                      color: darkMode ? theme.palette.getContrastText(theme.palette.grey[700]) : 
-                            theme.palette.primary.contrastText,
-                      pt: 3,
-                      pb: 2
-                    }}
-                  />
-                  
-                  <CardContent>
-                    <Box sx={{ 
-                      display: 'grid',
-                      gridTemplateColumns: 'repeat(2, 1fr)',
-                      gap: 2,
-                      mb: 2
-                    }}>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Employee ID
-                        </Typography>
-                        <Typography>{employee.employeeId}</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Department
-                        </Typography>
-                        <Typography>{employee.department}</Typography>
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Role
-                        </Typography>
-                        <Chip
-                          label={employee.role.toLowerCase()}
-                          size="small"
-                          icon={getRoleIcon(employee.role)}
-                          sx={{
-                            backgroundColor: darkMode ? theme.palette.grey[700] : theme.palette.action.selected,
-                          }}
-                        />
-                      </Box>
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          Status
-                        </Typography>
-                        <StatusIndicator status={employee.status} />
-                      </Box>
-                    </Box>
-
-                    <Divider sx={{ my: 2 }} />
-
-                    <Box sx={{ display: 'flex', gap: 1 }}>
-                      <Chip
-                        icon={<CalendarToday fontSize="small" />}
-                        label={new Date(employee.joinDate).toLocaleDateString()}
-                        size="small"
-                        variant="outlined"
-                      />
-                      <Chip
-                        icon={<AccessTime fontSize="small" />}
-                        label={`${Math.floor(Math.random() * 5) + 1} yrs`}
-                        size="small"
-                        variant="outlined"
-                      />
-                    </Box>
-                  </CardContent>
-                  
-                  <CardActions sx={{ 
-                    justifyContent: 'space-between',
-                    backgroundColor: darkMode ? theme.palette.grey[700] : theme.palette.action.hover
-                  }}>
-                    <Button
-                      size="small"
-                      startIcon={<Visibility />}
-                      onClick={() => handleQuickView(employee)}
-                    >
-                      Quick View
-                    </Button>
-                    <Box>
-                      <Tooltip title="View reports">
-                        <IconButton
-                          onClick={() => handleViewReports(employee.employeeId)}
-                          size="small"
-                        >
-                          <Description />
-                        </IconButton>
-                      </Tooltip>
-                      <Tooltip title="More options">
-                        <IconButton size="small">
-                          <MoreVert />
-                        </IconButton>
-                      </Tooltip>
-                    </Box>
-                  </CardActions>
-                </Card>
-              </motion.div>
-            ))}
-          </Box>
-
-          {/* Pagination */}
-          <Box sx={{ 
-            display: 'flex', 
-            justifyContent: 'center',
-            mt: 2
-          }}>
-            <Pagination
-              count={Math.ceil(filteredEmployees.length / rowsPerPage)}
-              page={page}
-              onChange={(e, value) => setPage(value)}
-              color="primary"
-              shape="rounded"
-              showFirstButton
-              showLastButton
-              sx={{
-                '& .MuiPaginationItem-root': {
-                  color: darkMode ? theme.palette.text.primary : undefined
-                }
-              }}
-            />
           </Box>
         </motion.div>
       )}
@@ -1230,7 +958,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
         transitionDuration={300}
         PaperProps={{
           sx: {
-            backgroundColor: darkMode ? theme.palette.grey[800] : undefined
+            backgroundColor: undefined
           }
         }}
       >
@@ -1291,7 +1019,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
                         icon={getRoleIcon(selectedEmployee.role)}
                         size="small"
                         sx={{
-                          backgroundColor: darkMode ? theme.palette.grey[700] : theme.palette.action.selected,
+                          backgroundColor: theme.palette.action.selected,
                         }}
                       />
                       <Chip
@@ -1322,7 +1050,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
                       <Box sx={{ display: "flex", alignItems: "center", gap: 1 }}>
                         <LocationOn fontSize="small" color="action" />
                         <Typography variant="body2">
-                          {selectedEmployee.location || "New York, USA"}
+                          {selectedEmployee.address || "New York, USA"}
                         </Typography>
                       </Box>
                     </Box>
@@ -1346,13 +1074,10 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
                         <strong>ID:</strong> {selectedEmployee.employeeId}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Position:</strong> {selectedEmployee.position || "N/A"}
+                        <strong>Name:</strong> {selectedEmployee.name || "N/A"}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Hire Date:</strong> {selectedEmployee.hireDate || "N/A"}
-                      </Typography>
-                      <Typography variant="body2">
-                        <strong>Years of Service:</strong> {Math.floor(Math.random() * 10) + 1}
+                        <strong>Department:</strong> {selectedEmployee.department || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
@@ -1366,10 +1091,10 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
                         <strong>Address:</strong> {selectedEmployee.address || "N/A"}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Emergency Contact:</strong> {selectedEmployee.emergencyContact || "N/A"}
+                        <strong>Phone number:</strong> {selectedEmployee.phone || "N/A"}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Emergency Phone:</strong> {selectedEmployee.emergencyPhone || "N/A"}
+                        <strong>Email Id:</strong> {selectedEmployee.eamil || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
@@ -1402,7 +1127,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
                       
                       <Collapse in={expandedEmployee === selectedEmployee.employeeId}>
                         <List sx={{ 
-                          backgroundColor: darkMode ? theme.palette.grey[700] : theme.palette.grey[100],
+                          backgroundColor: theme.palette.grey[100],
                           borderRadius: 1,
                           p: 1
                         }}>
@@ -1440,7 +1165,7 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
             
             <DialogActions sx={{ 
               p: 2,
-              backgroundColor: darkMode ? theme.palette.grey[700] : undefined
+              backgroundColor: undefined
             }}>
               <Button 
                 onClick={() => setDetailOpen(false)}
@@ -1459,16 +1184,40 @@ const EmployeeDirectory = ({ roleFilter = null }) => {
           </>
         )}
       </Dialog>
-
-      {/* Quick View Dialog */}
-      <EmployeeQuickView
-        open={quickViewOpen}
-        onClose={() => setQuickViewOpen(false)}
-        employee={selectedEmployee}
-        darkMode={darkMode}
-      />
+      <Dialog open={editDialogOpen} onClose={() => setEditDialogOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Edit Employee</DialogTitle>
+        <DialogContent>
+          {selectedEmployee && (
+            <UserForm
+              user={selectedEmployee}
+              role={selectedEmployee.role}
+              onSuccess={handleEditSuccess}
+              onCancel={() => setEditDialogOpen(false)}
+            />
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setEditDialogOpen(false)}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
+      <Dialog open={addDialogOpen} onClose={() => setAddDialogOpen(false)} maxWidth="md" fullWidth>
+  <DialogTitle>Add New Employee</DialogTitle>
+  <DialogContent>
+    <UserForm
+      user={null} // Passing null indicates this is a new user
+      role={roleFilterLocal || "employee"} // Default role
+      onSuccess={() => {
+        setAddDialogOpen(false);
+        fetchEmployees(); 
+        alert('User added successfully!');
+      }}
+      onCancel={() => setAddDialogOpen(false)}
+    />
+  </DialogContent>
+</Dialog>
     </Box>
   );
 };
 
-export default EmployeeDirectory;
+export default Dashboard;
+
