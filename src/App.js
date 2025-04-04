@@ -36,7 +36,7 @@ function App() {
               </ProtectedRoute>
             }
           >
-            <Route path="dashboard" element={<EmployeeDashboard />} />
+            <Route path="dashboard" element={<EmployeeReports />} />
             <Route path="profile" element={<Profile />} />
             <Route path="reports/:employeeId" element={<EmployeeReports />} />
             <Route path="doctorsList" element={<DoctorsList />} />

@@ -49,7 +49,7 @@ import {
 } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../utils/api";
-// import LoadingScreen from "../../components/common/LoadingScreen";
+import LoadingScreen from "../components/common/LoadingScreen";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import "../pages/styles/EmployeeReports.css";
@@ -65,6 +65,8 @@ const EmployeeReports = () => {
   const [reportsPerPage, setReportsPerPage] = useState(10);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [familyMembers, setFamilyMembers] = useState([]);
+  const [selectedMember, setSelectedMember] = useState(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortOrder, setSortOrder] = useState("desc");
   const [sortField, setSortField] = useState("uploaded_at");
@@ -82,7 +84,7 @@ const EmployeeReports = () => {
   const [selectedMetadata, setSelectedMetadata] = useState(null);
   const { user } = useAuth();
   const navigate = useNavigate();
-
+  const [verifyingAccess, setVerifyingAccess] = useState(true);
   const indexOfLastReport = currentPage * reportsPerPage;
   const indexOfFirstReport = indexOfLastReport - reportsPerPage;
   const currentReports = filteredReports.slice(indexOfFirstReport, indexOfLastReport);
@@ -92,40 +94,176 @@ const EmployeeReports = () => {
   const labSubtypes = ["All", "Hematology", "Biochemistry", "MicroBiology", "BloodBank"];
   const pharmacySubtypes = ["All", "InPharmacy", "OutPharmacy"];
 
-  useEffect(() => {
-    fetchReports();
-  }, [employeeId]);
-
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [filteredReports]);
-
   const fetchReports = async () => {
     setLoading(true);
     setError(null);
     try {
       const response = await api.get(`/reports/${employeeId}`);
+      
+      // Handle case where backend returns message structure
+      if (response.data.message) {
+        if (response.data.code === "NO_REPORTS") {
+          setReports([]);
+          setFilteredReports([]);
+          setInstructions({});
+          return; // No error, just no reports
+        }
+        // For other messages, treat as error
+        throw new Error(response.data.message);
+      }
+  
       const reports = response.data;
-
-      // Fetch the latest feedback for all reports
-      const feedbackResponse = await api.get(`/instructions/latest/${employeeId}`);
-      const feedbackData = feedbackResponse.data;
-
-      // Map feedback to the corresponding report ID
-      const feedbackMap = feedbackData.reduce((acc, feedback) => {
-        acc[feedback.report_id] = [feedback];
-        return acc;
-      }, {});
-
-      setReports(reports);
-      setFilteredReports(reports);
-      setInstructions(feedbackMap); // Store the latest feedback in the state
+      const filtered = reports.filter(report => 
+        report.employee_id === employeeId
+      );
+  
+      try {
+        const feedbackResponse = await api.get(`/instructions/latest/${employeeId}`);
+        const feedbackData = feedbackResponse.data;
+        const feedbackMap = feedbackData.reduce((acc, feedback) => {
+          acc[feedback.report_id] = [feedback];
+          return acc;
+        }, {});
+  
+        setReports(filtered);
+        setFilteredReports(filtered);
+        setInstructions(feedbackMap);
+      } catch (feedbackError) {
+        console.error("Error fetching feedback:", feedbackError);
+        setReports(filtered);
+        setFilteredReports(filtered);
+        setInstructions({});
+      }
+      
     } catch (error) {
-      setError("Failed to fetch reports. Please try again.");
+      if (error.response?.status === 404) {
+        if (error.response.data?.code === "USER_NOT_FOUND") {
+          setError("Employee/Dependent not found");
+        } else {
+          setError("No reports found for this employee/dependent");
+        }
+      } else {
+        setError(error.message || "Failed to fetch reports. Please try again.");
+      }
+      setReports([]);
+      setFilteredReports([]);
+      setInstructions({});
     } finally {
       setLoading(false);
     }
   };
+
+  const checkFamilyMemberAccess = async (requestedId, currentUserId) => {
+    try {
+      console.log(`Checking access for ${currentUserId} to ${requestedId}'s reports`);
+      const response = await api.get(`/checkAccess`, {
+        params: {
+          employee_id: currentUserId,
+          dependent_id: requestedId
+        }
+      });
+      console.log('Access check response:', response.data);
+      return response.data.isFamilyMember;
+    } catch (error) {
+      console.error("Error checking family member:", {
+        error: error.message,
+        response: error.response?.data,
+        status: error.response?.status
+      });
+      return false;
+    }
+  };
+
+  useEffect(() => {
+    if (!user) return; 
+  
+    const verifyAccess = async () => {
+      try {
+        if (user.role !== "EMPLOYEE" || employeeId === user.employeeId) {
+          return true;
+        }
+  
+        const isFamilyMember = await checkFamilyMemberAccess(employeeId, user.employeeId);
+        if (!isFamilyMember) {
+          console.log(`Redirecting to own reports (${user.employeeId})`);
+          navigate(`/employee/reports/${user.employeeId}`, { replace: true });
+          return false;
+        }
+        return true;
+      } catch (error) {
+        console.error("Access verification failed:", error);
+        navigate(`/employee/reports/${user.employeeId}`, { replace: true });
+        return false;
+      }
+    };
+
+    const fetchFamilyMembers = async () => {
+      try {
+        const response = await api.get(`/employee/${user.employeeId}/family`);
+        
+        // Create family members array with Self included
+        const allMembers = [
+          {
+            dependent_id: user.employeeId,
+            name: user.name,
+            relation: "SELF"
+          },
+          ...response.data
+        ];
+        
+        setFamilyMembers(allMembers);
+        
+        // Find the current member based on employeeId in URL
+        const currentMember = allMembers.find(member => 
+          member.dependent_id === employeeId
+        );
+        
+        setSelectedMember(currentMember || {
+          id: user.employeeId,
+          name: user.name,
+          relation: "SELF"
+        });
+      } catch (error) {
+        console.error("Error fetching family members:", error);
+        setSelectedMember({
+          id: user.employeeId,
+          name: user.name,
+          relation: "SELF"
+        });
+      }
+    };
+    
+    const fetchData = async () => {
+      setVerifyingAccess(true);
+      const accessGranted = await verifyAccess();
+      
+      if (accessGranted) {
+        try{
+        await fetchFamilyMembers();
+        await fetchReports();
+        }catch (error) {
+          setError("Failed to load data. Please try again.");
+        }
+      }
+      
+      setVerifyingAccess(false);
+    };
+
+    fetchData();
+  }, [employeeId, user, navigate]);
+
+  
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filteredReports]);
+
+    if (verifyingAccess) {
+      return <LoadingScreen message="Verifying access..." />;
+    }
+
+    if (loading) {
+      return <LoadingScreen message="Fetching reports..." />;
+    }
 
   const fetchInstructions = async (reportId) => {
     try {
@@ -367,19 +505,48 @@ const EmployeeReports = () => {
         </Box>
       ) :  (
         <>
-          <Box className="header-container">
-            <Typography variant="h5" fontWeight="600">
-              Medical Reports
-            </Typography>
-            <Typography variant="subtitle1" color="text.secondary">
-              Employee ID: {employeeId}
-            </Typography>
-          </Box>
+<Box className="header-container">
+  <Typography variant="h5" fontWeight="600">
+    Medical Reports {selectedMember?.dependent_id !== user.employeeId && 
+      `for ${selectedMember?.name || ''} (${selectedMember?.relation || ''})`}
+  </Typography>
+  <Typography variant="subtitle1" color="text.secondary">
+    {selectedMember?.dependent_id === user.employeeId ? 
+      `Employee ID: ${employeeId}` : 
+      `Dependent ID: ${employeeId}`}
+  </Typography>
+</Box>
 
           <Divider sx={{ my: 3 }} />
 
           {/* Action Bar */}
           <Box className="action-bar">
+            {(user.role === "EMPLOYEE") && (
+               <FormControl sx={{ minWidth: 150, mr: 2 }}>
+               <InputLabel>View Reports For</InputLabel>
+               <Select
+  value={selectedMember?.dependent_id || user.employeeId}
+  onChange={(e) => {
+    const memberId = e.target.value;
+    navigate(`/employee/reports/${memberId}`);
+  }}
+  label="View Reports For"
+  renderValue={(selected) => {
+    const member = familyMembers.find(m => m.dependent_id === selected);
+    return member ? `${member.name} (${member.relation})` : "Self";
+  }}
+>
+  {familyMembers.map((member) => (
+    <MenuItem 
+      key={member.dependent_id} 
+      value={member.dependent_id}
+    >
+      {member.name} ({member.relation})
+    </MenuItem>
+  ))}
+</Select>
+  </FormControl>
+  )}
             {(user.role === "TECHNICIAN") && (
             <Button
               variant="contained"
