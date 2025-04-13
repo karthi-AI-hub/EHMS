@@ -152,7 +152,7 @@ const EmployeeDirectory = () => {
             return {
               ...employee,
               latestAllergy: "No allergies",
-              latestCondition: "No Conditions",
+              latestCondition: "No Chronic",
             };
           }
         })
@@ -194,9 +194,12 @@ const EmployeeDirectory = () => {
 
     if (employees) {
       const filtered = employees.filter(
+
+
+        
         (emp) =>
           emp.name.toLowerCase().includes(query) ||
-          emp.employeeId.toLowerCase().includes(query) ||
+          emp.employeeId.toLowerCase().includes(query) || 
           emp.department.toLowerCase().includes(query) ||
           (emp.family &&
             emp.family.some((member) =>
@@ -282,6 +285,7 @@ const EmployeeDirectory = () => {
 
   const handleCloseDialog = () => {
     setDialogOpen(false);
+    fetchAllEmployees();
     setHistory([]);
     setNewEntry("");
   };
@@ -363,6 +367,11 @@ const EmployeeDirectory = () => {
     employees.forEach((emp) => depts.add(emp.department));
     return Array.from(depts).sort();
   }, [employees]);
+
+  const sortedHistory = useMemo(() => {
+    const currentHistory = history[activeTab === 0 ? "allergies" : "conditions"] || [];
+    return currentHistory.slice().sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+  }, [history, activeTab]);
 
   return (
     <motion.div
@@ -462,7 +471,7 @@ const EmployeeDirectory = () => {
                       direction={sortConfig.direction}
                       onClick={() => handleSort("employeeId")}
                     >
-                      Employee ID
+                      EMPLOYEE ID
                     </TableSortLabel>
                   </TableCell>
                   <TableCell width="20%">
@@ -471,7 +480,7 @@ const EmployeeDirectory = () => {
                       direction={sortConfig.direction}
                       onClick={() => handleSort("name")}
                     >
-                      Name
+                      NAME
                     </TableSortLabel>
                   </TableCell>
                   <TableCell width="15%">
@@ -480,17 +489,17 @@ const EmployeeDirectory = () => {
                       direction={sortConfig.direction}
                       onClick={() => handleSort("status")}
                     >
-                      Status
+                      STATUS
                     </TableSortLabel>
                   </TableCell>
                   {["DOCTOR", "ADMIN"].includes(user.role) && (
                     <>
-                      <TableCell width="15%">Allergy</TableCell>
-                      <TableCell width="15%">Condition</TableCell>
+                      <TableCell width="15%">ALLERGY</TableCell>
+                      <TableCell width="15%">CHRONIC</TableCell>
                     </>
                   )}
                   <TableCell width="15%" align="end">
-                    Actions
+                    ACTIONS
                   </TableCell>
                 </TableRow>
               </TableHead>
@@ -557,7 +566,7 @@ const EmployeeDirectory = () => {
                             <Typography
                               variant="body2"
                              >
-                              {emp.latestCondition || "No conditions"}
+                              {emp.latestCondition || "No Chronnic"}
                             </Typography>
                           </TableCell>
                         </>
@@ -967,18 +976,6 @@ const EmployeeDirectory = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setDetailDialogOpen(false)}>Close</Button>
-          <Button
-            onClick={() => {
-              setDetailDialogOpen(false);
-              handleViewReports(
-                selectedEmployee?.employeeId || selectedEmployee?.dependentId
-              );
-            }}
-            variant="contained"
-            startIcon={<Description />}
-          >
-            View Reports
-          </Button>
         </DialogActions>
       </Dialog>
 
@@ -986,7 +983,7 @@ const EmployeeDirectory = () => {
   <DialogTitle>
     <Box display="flex" justifyContent="space-between" alignItems="center">
       <Typography variant="h6">
-        {activeTab === 0 ? "Allergy" : "Condition"} Management
+        {activeTab === 0 ? "Allergy" : "Chronic illness"} Management
       </Typography>
       <IconButton onClick={handleCloseDialog}>
         <Close />
@@ -1000,12 +997,12 @@ const EmployeeDirectory = () => {
       sx={{ mb: 2 }}
     >
       <Tab label="Allergies" />
-      <Tab label="Conditions" />
+      <Tab label="Chronic illness" />
     </Tabs>
     
     <Box mb={3}>
       <Typography variant="subtitle1" gutterBottom>
-        Add New {activeTab === 0 ? "Allergy" : "Condition"}
+        Add New {activeTab === 0 ? "Allergy" : "Chronic illness"}
       </Typography>
       <Box display="flex" gap={2}>
         <TextField
@@ -1014,7 +1011,7 @@ const EmployeeDirectory = () => {
           size="small"
           value={newEntry}
           onChange={(e) => setNewEntry(e.target.value)}
-          placeholder={`Enter ${activeTab === 0 ? "allergy" : "condition"} name`}
+          placeholder={`Enter ${activeTab === 0 ? "allergy" : "Chronic illness"} name`}
         />
         <Button
           variant="contained"
@@ -1030,7 +1027,7 @@ const EmployeeDirectory = () => {
     <Divider sx={{ my: 2 }} />
     
     <Typography variant="subtitle1" gutterBottom>
-      {activeTab === 0 ? "Allergy" : "Condition"} History
+      {activeTab === 0 ? "Allergy" : "Chronic illness"} History
     </Typography>
     
     {loadingAllergies && activeTab === 0 ? (
@@ -1047,13 +1044,25 @@ const EmployeeDirectory = () => {
           </TableRow>
         </TableHead>
         <TableBody>
-          {history[activeTab === 0 ? "allergies" : "conditions"]?.map((item) => (
+          {sortedHistory.map((item, index) => (
             <TableRow key={item.id}>
-              <TableCell>{item[activeTab === 0 ? "allergy_name" : "condition_name"]}</TableCell>
+              <TableCell>
+                {item[activeTab === 0 ? "allergy_name" : "condition_name"]}
+                {index === 0 && (
+                  <Chip
+                    label="Latest"
+                    size="small"
+                    color="primary"
+                    sx={{ ml: 1 }}
+                  />
+                )}
+              </TableCell>
               <TableCell>
                 {new Date(item.updated_at).toLocaleDateString()}
               </TableCell>
-              <TableCell>{item.updated_by || item.created_by}</TableCell>
+              <TableCell>
+                {item.updated_by || item.created_by}
+              </TableCell>
             </TableRow>
           ))}
         </TableBody>

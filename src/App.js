@@ -19,7 +19,7 @@ import FileUploadPage from "./utils/FileUpload";
 import Analytics from "./pages/Analytics";
 function App() {
   return (
-    <Router>
+    <Router basename="/ehms">
       <AuthProvider>
         <Routes>
           <Route path="/" element={<SplashScreen />} />

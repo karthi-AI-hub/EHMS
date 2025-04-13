@@ -368,10 +368,10 @@ const DoctorsList = () => {
                       <DoctorInfoRow icon={<Email />} value={doctor.email} />
                       <DoctorInfoRow icon={<Phone />} value={doctor.phone} />
                       <DoctorInfoRow icon={<Work />} value={doctor.department} />
-                      <DoctorInfoRow 
+                      {/* <DoctorInfoRow 
                         icon={<CalendarToday />} 
                         value={`Joined: ${new Date(doctor.created_at).toLocaleDateString()}`}
-                      />
+                      /> */}
                     </CardContent>
                   </StyledCard>
                 </motion.div>
@@ -459,13 +459,13 @@ const DoctorsList = () => {
                 <Grid container spacing={2}>
                   <Grid item xs={12} md={6}>
                     <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
-                      Contact Information
+                      Doctor Information
                     </Typography>
                     <DoctorInfoRow icon={<Email />} value={selectedDoctor?.email} />
                     <DoctorInfoRow icon={<Phone />} value={selectedDoctor?.phone} />
                     <DoctorInfoRow icon={<Work />} value={selectedDoctor?.department} />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  {/* <Grid item xs={12} md={6}>
                     <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                       Additional Details
                     </Typography>
@@ -479,7 +479,8 @@ const DoctorsList = () => {
                         value={`Address: ${selectedDoctor.address}`}
                       />
                     )}
-                  </Grid>
+                  </Grid> */}
+                  
                 </Grid>
               </Box>
             )}

@@ -56,18 +56,17 @@ import {
     Close,
     KeyboardArrowDown,
     KeyboardArrowUp,
-    Print,
     Delete,
     Download,
     People,
     CheckCircle,
-    Warning,
     Error as ErrorIcon,
     PersonAdd,
     FilterAlt,
     PauseCircle,
     SwapHoriz,
     Edit,
+    LocalHospital,
   } from "@mui/icons-material";
 import { motion, AnimatePresence, useAnimation } from "framer-motion";
 import { useTheme } from "@mui/material/styles";
@@ -76,7 +75,6 @@ import api from "../../utils/api";
 import EmployeeStatsCard from "../../components/EmployeeStatsCard";
 import LoadingScreen from "../../components/common/LoadingScreen";
 import UserForm from "../UserForm";
-import { saveAs } from "file-saver";
 import { utils, writeFile } from "xlsx";
 
 const Dashboard = ({ roleFilter = null }) => {
@@ -93,7 +91,6 @@ const Dashboard = ({ roleFilter = null }) => {
   const [sortConfig, setSortConfig] = useState({ key: "name", direction: "asc" });
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [detailOpen, setDetailOpen] = useState(false);
-  const [filterAnchorEl, setFilterAnchorEl] = useState(null);
   const [statusFilter, setStatusFilter] = useState("all");
   const [departmentFilter, setDepartmentFilter] = useState("all");
   const [roleFilterLocal, setRoleFilterLocal] = useState(roleFilter || "all");
@@ -103,16 +100,14 @@ const Dashboard = ({ roleFilter = null }) => {
   const [selectedEmployees, setSelectedEmployees] = useState([]);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, onLeave: 0, transferred: 0 });
+  const [stats, setStats] = useState({ total: 0, active: 0, inactive: 0, beneficiaries: 0 });
   const [speedDialOpen, setSpeedDialOpen] = useState(false);
-  const [printMode, setPrintMode] = useState(false);
 
   const getStatusColor = (status) => {
     switch (status) {
       case "active": return "success";
       case "inactive": return "error";
-      case "on_leave": return "warning";
-      case "transferred": return "secondary";
+      case "beneficiaries": return "secondary";
       default: return "default";
     }
   };
@@ -138,41 +133,44 @@ const Dashboard = ({ roleFilter = null }) => {
   const fetchEmployees = async () => {
     try {
       const response = await api.get("/allemployees");
-      setEmployees(response.data); 
-    } catch (error) {
-      console.error("Error fetching employees:", error);
+      const data = response.data.map(emp => ({
+        ...emp,
+        family: emp.family.map(f => ({
+          ...f,
+          status: f.status.toLowerCase(), // Normalize status to lowercase
+        })),
+      }));
+
+      // Calculate stats
+      const totalEmployees = data.length;
+      const activeEmployees = data.filter(e => e.status === "active").length;
+      const activeFamilyMembers = data.reduce(
+        (count, emp) => count + emp.family.filter(f => f.status === "active").length,
+        0
+      );
+
+      const statsData = {
+        total: totalEmployees,
+        active: activeEmployees,
+        inactive: data.filter(e => e.status === "inactive").length,
+        beneficiaries: activeEmployees + activeFamilyMembers, // Active employees + active family members
+      };
+
+      console.log("Stats Data:", statsData); // Debugging: Log the calculated stats
+      setStats(statsData);
+
+      setEmployees(data);
+      setFilteredEmployees(data);
+    } catch (err) {
+      setError("Failed to fetch employees. Please try again.");
+      console.error("Error fetching employees:", err);
+    } finally {
+      setLoading(false);
     }
   };
+
   // Fetch employees with enhanced data
   useEffect(() => {
-    const fetchEmployees = async () => {
-      setLoading(true);
-      try {
-        const response = await api.get("/allemployees");
-        let data = response.data.map(emp => ({
-          ...emp,
-        }));
-
-        // Calculate stats
-        const statsData = {
-          total: data.length,
-          active: data.filter(e => e.status === "active").length,
-          inactive: data.filter(e => e.status === "inactive").length,
-          onLeave: data.filter(e => e.status === "on_leave").length,
-          transferred: data.filter(e => e.status === "transferred").length,
-        };
-        setStats(statsData);
-
-        setEmployees(data);
-        setFilteredEmployees(data);
-      } catch (err) {
-        setError("Failed to fetch employees. Please try again.");
-        console.error("Error fetching employees:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchEmployees();
     controls.start({ opacity: 1, y: 0 });
   }, [controls]);
@@ -192,7 +190,6 @@ const Dashboard = ({ roleFilter = null }) => {
     setSelectedEmployee(null);
     fetchEmployees();
   };
-
 
   // Apply all filters and sorting
   useEffect(() => {
@@ -327,8 +324,7 @@ const Dashboard = ({ roleFilter = null }) => {
     <Box display="flex" alignItems="center" gap={1}>
       {status === "active" && <CheckCircle color="success" fontSize="small" />}
       {status === "inactive" && <ErrorIcon color="error" fontSize="small" />}
-      {status === "on_leave" && <PauseCircle color="warning" fontSize="small" />}
-      {status === "transferred" && <SwapHoriz color="info" fontSize="small" />}
+      {status === "beneficiaries" && <SwapHoriz color="info" fontSize="small" />}
       <Typography variant="caption" textTransform="capitalize">
         {status.replace("_", " ")}
       </Typography>
@@ -342,7 +338,7 @@ const Dashboard = ({ roleFilter = null }) => {
       Status: emp.status,
       Department: emp.department,
       Allergy: emp.latestAllergy || "No allergies",
-      Condition: emp.latestCondition || "No conditions",
+      Chronic: emp.latestCondition || "No conditions",
     }));
   
     const worksheet = utils.json_to_sheet(csvData);
@@ -354,9 +350,9 @@ const Dashboard = ({ roleFilter = null }) => {
 
   const speedDialActions = [
     { icon: <PersonAdd />, name: 'Add Employee', action: () => setAddDialogOpen(true) },
-    { icon: <Print />, name: 'Print', action: () => setPrintMode(true) },
+    // { icon: <Print />, name: 'Print', action: () => setPrintMode(true) },
     { icon: <Download />, name: 'Export', action: () => handleExportCSV() },
-    { icon: <FilterAlt />, name: 'Advanced Filters', action: () => setFilterAnchorEl(document.getElementById('filter-button')) },
+    // { icon: <FilterAlt />, name: 'Advanced Filters', action: () => setFilterAnchorEl(document.getElementById('filter-button')) },
   ];
 
   // Scroll to top button
@@ -392,7 +388,7 @@ const Dashboard = ({ roleFilter = null }) => {
             transition={{ duration: 0.5 }}
           >
             <Typography variant="h4" component="h1" sx={{ fontWeight: 700 }}>
-             Admin Dashboard
+             ADMIN DASHBOARD
             </Typography>
             <Typography variant="subtitle1" color="text.secondary">
               {filteredEmployees.length} users found
@@ -409,7 +405,7 @@ const Dashboard = ({ roleFilter = null }) => {
       >
         <Box sx={{ 
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(5, 1fr)' },
+          gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(4, 1fr)' },
           gap: 2,
           mb: 3
         }}>
@@ -431,16 +427,11 @@ const Dashboard = ({ roleFilter = null }) => {
             icon={<ErrorIcon />} 
             color="error" 
           />
-          <EmployeeStatsCard 
-            title="On Leave" 
-            value={stats.onLeave} 
-            icon={<PauseCircle />} 
-            color="warning" 
-          />
+          
            <EmployeeStatsCard 
-            title="Transferred" 
-            value={stats.transferred} 
-            icon={<SwapHoriz />} 
+            title="Active Beneficiaries" 
+            value={stats.beneficiaries} // Total employees + dependents
+            icon={<LocalHospital />} 
             color="secondary" 
           />
         </Box>
@@ -502,8 +493,6 @@ const Dashboard = ({ roleFilter = null }) => {
                 <MenuItem value="all">All Statuses</MenuItem>
                 <MenuItem value="active">Active</MenuItem>
                 <MenuItem value="inactive">Inactive</MenuItem>
-                <MenuItem value="on_leave">On Leave</MenuItem>
-                <MenuItem value="transferred">Transferred</MenuItem>
 
               </Select>
             </FormControl>
@@ -717,7 +706,7 @@ const Dashboard = ({ roleFilter = null }) => {
                         onClick={() => handleSort("name")}
                       >
                         <Typography variant="subtitle2" fontWeight="bold">
-                          Employee
+                          NAME
                         </Typography>
                       </TableSortLabel>
                     </TableCell>
@@ -739,7 +728,7 @@ const Dashboard = ({ roleFilter = null }) => {
                         onClick={() => handleSort("department")}
                       >
                         <Typography variant="subtitle2" fontWeight="bold">
-                          Department
+                          DEPARTMENT
                         </Typography>
                       </TableSortLabel>
                     </TableCell>
@@ -750,7 +739,7 @@ const Dashboard = ({ roleFilter = null }) => {
                         onClick={() => handleSort("role")}
                       >
                         <Typography variant="subtitle2" fontWeight="bold">
-                          Role
+                          ROLE
                         </Typography>
                       </TableSortLabel>
                     </TableCell>
@@ -761,13 +750,13 @@ const Dashboard = ({ roleFilter = null }) => {
                         onClick={() => handleSort("status")}
                       >
                         <Typography variant="subtitle2" fontWeight="bold">
-                          Status
+                          STATUS
                         </Typography>
                       </TableSortLabel>
                     </TableCell>
                     <TableCell align="right">
                       <Typography variant="subtitle2" fontWeight="bold">
-                        Actions
+                        ACTIONS
                       </Typography>
                     </TableCell>
                   </TableRow>
@@ -1113,7 +1102,7 @@ const Dashboard = ({ roleFilter = null }) => {
                         <strong>Phone number:</strong> {selectedEmployee.phone || "N/A"}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Email Id:</strong> {selectedEmployee.eamil || "N/A"}
+                        <strong>Email Id:</strong> {selectedEmployee.email || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
@@ -1168,7 +1157,7 @@ const Dashboard = ({ roleFilter = null }) => {
                                     >
                                       {member.relation}
                                     </Typography>
-                                    {member.status && ` • ${member.status.replace("_", " ")}`}
+                                    {/* {member.status && ` • ${member.status.replace("_", " ")}`} */}
                                   </>
                                 }
                               />

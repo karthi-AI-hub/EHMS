@@ -27,7 +27,8 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Tooltip
+  Tooltip,
+  Switch
 } from "@mui/material";
 import {
   Person,
@@ -63,6 +64,7 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
     department: "",
     status: "active",
     role: "employee",
+    refer_hospital: false, // New field for "Refer Another Hospital"
   });
 
   // Family members state
@@ -106,7 +108,7 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
       if (response.data && Array.isArray(response.data)) {
         setFamilyMembers(response.data.map(member => ({
           ...member,
-          status: member.status?.toLowerCase() || 'active'
+          status: member.status?.toLowerCase() || "active", // Ensure status is lowercase for consistency
         })));
       } else {
         console.warn("Unexpected family members response format:", response.data);
@@ -114,10 +116,7 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
       }
     } catch (error) {
       console.error("Error loading family members:", error);
-      if (error.response) {
-        console.error("Error response:", error.response.data);
-      }
-      setErrors(prev => ({...prev, family: "Failed to load family members"}));
+      setErrors(prev => ({ ...prev, family: "Failed to load family members" }));
     } finally {
       setLoadingFamily(false);
     }
@@ -134,24 +133,33 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
   const handleMemberChange = (e) => {
     const { name, value } = e.target;
     setCurrentMember(prev => ({ ...prev, [name]: value }));
+
+    // If editing an existing member, update the state immediately
+    if (editMemberIndex !== null && name === "status") {
+      setFamilyMembers(prev =>
+        prev.map((member, index) =>
+          index === editMemberIndex ? { ...member, status: value.toLowerCase() } : member
+        )
+      );
+    }
   };
 
   const addOrUpdateFamilyMember = () => {
     if (!currentMember.name) {
-      setErrors(prev => ({...prev, family: "Name is required"}));
+      setErrors(prev => ({ ...prev, family: "Name is required" }));
       return;
     }
   
     const newMember = {
       name: currentMember.name,
       relation: currentMember.relation,
-      status: currentMember.status.toUpperCase() || 'ACTIVE'
+      status: currentMember.status.toLowerCase() || "active", // Ensure status is lowercase for consistency
     };
   
     if (editMemberIndex !== null) {
-      // Update existing member - preserve dependent_id if exists
-      setFamilyMembers(prev => 
-        prev.map((member, index) => 
+      // Update existing member
+      setFamilyMembers(prev =>
+        prev.map((member, index) =>
           index === editMemberIndex ? { ...member, ...newMember } : member
         )
       );
@@ -161,13 +169,13 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
       setFamilyMembers(prev => [...prev, newMember]);
     }
   
-    // Reset form
+    // Reset the current member form
     setCurrentMember({
       name: "",
       relation: "SON",
-      status: "active"
+      status: "active",
     });
-    setErrors(prev => ({...prev, family: ""}));
+    setErrors(prev => ({ ...prev, family: "" }));
   };
 
   const startEditMember = (index) => {
@@ -180,15 +188,6 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
     setEditMemberIndex(index);
   };
 
-  const confirmDeleteMember = (index) => {
-    setMemberToDelete(index);
-    setDeleteConfirmOpen(true);
-  };
-
-  const deleteMember = () => {
-    setFamilyMembers(prev => prev.filter((_, i) => i !== memberToDelete));
-    setDeleteConfirmOpen(false);
-  };
 
   const cancelEdit = () => {
     setCurrentMember({
@@ -213,33 +212,34 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!validateForm()) return;
-    
+
     setSubmitting(true);
-    try {    
+    try {
       const payload = {
         ...formData,
         family_members: familyMembers.map(member => ({
           ...member,
-          status: member.status?.toUpperCase() || 'ACTIVE'
-        }))
+          status: member.status?.toUpperCase() || "ACTIVE",
+        })),
       };
-    
+
       if (user) {
-        const response = await api.put(`/employee/${formData.employee_id}`, payload);
+        await api.put(`/employee/${formData.employee_id}`, payload);
       } else {
-        const response = await api.post(`/employee`, payload);
+        await api.post(`/employee`, payload);
       }
+
+      // Reload family members to ensure UI reflects the latest data
+      if (user) {
+        await loadFamilyMembers(formData.employee_id);
+      }
+
       onSuccess();
     } catch (error) {
       console.error("Error saving employee:", error);
-      if (error.response) {
-        console.error("Response data:", error.response.data);
-        console.error("Response status:", error.response.status);
-        console.error("Response headers:", error.response.headers);
-      }
       setErrors(prev => ({
         ...prev,
-        form: error.response?.data?.message || "Failed to save employee. Please try again."
+        form: error.response?.data?.message || "Failed to save employee. Please try again.",
       }));
     } finally {
       setSubmitting(false);
@@ -298,7 +298,7 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
           {/* Personal Information */}
           <Grid item xs={12} md={6}>
             <Typography variant="subtitle1" gutterBottom color="text.primary" fontWeight="medium">
-              Personal Information
+              PERSONAL INFORMATION
             </Typography>
             <TextField
               fullWidth
@@ -360,7 +360,7 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
           {/* Contact Information */}
           <Grid item xs={12} md={6}>
             <Typography variant="subtitle1" gutterBottom color="text.primary" fontWeight="medium">
-              Contact Information
+              CONTACT INFORMATION
             </Typography>
             <TextField
               fullWidth
@@ -385,7 +385,7 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
               onChange={handleChange}
               margin="normal"
               multiline
-              rows={3}
+              rows={2}
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
@@ -399,7 +399,7 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
           {/* Employment Details */}
           <Grid item xs={12}>
             <Typography variant="subtitle1" gutterBottom color="text.primary" fontWeight="medium">
-              Employment Details
+              EMPLOYEEMENT DETAILS
             </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12} md={4}>
@@ -420,20 +420,24 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
                 />
               </Grid>
               <Grid item xs={12} md={4}>
-                <FormControl fullWidth margin="normal" required>
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    name="status"
-                    value={formData.status}
-                    onChange={handleChange}
-                    label="Status"
-                  >
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="inactive">Inactive</MenuItem>
-                    <MenuItem value="on_leave">On Leave</MenuItem>
-                    <MenuItem value="transferred">Transferred</MenuItem>
-                  </Select>
-                </FormControl>
+                <Typography variant="subtitle1" gutterBottom color="text.primary" fontWeight="medium">
+                  Status
+                </Typography>
+                <Box display="flex" alignItems="center" gap={2}>
+                  <Typography variant="body2" color="text.secondary">
+                    {formData.status === "active" ? "Active" : "Inactive"}
+                  </Typography>
+                  <Switch
+                    checked={formData.status === "active"}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        status: e.target.checked ? "active" : "inactive",
+                      }))
+                    }
+                    color="primary"
+                  />
+                </Box>
               </Grid>
               <Grid item xs={12} md={4}>
                 <FormControl fullWidth margin="normal" required>
@@ -458,13 +462,38 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
             </Grid>
           </Grid>
 
+          {/* Refer Another Hospital */}
+          <Grid item xs={12}>
+            <Divider sx={{ my: 2 }} />
+            <Box display="flex" alignItems="center" gap={2}>
+              <Typography variant="subtitle1" color="text.primary" fontWeight="medium">
+                REFER ANOTHER HOSPITAL
+              </Typography>
+              <Box display="flex" alignItems="center" gap={2}>
+                <Typography variant="body2" color="text.secondary">
+                  {formData.refer_hospital ? "Yes" : "No"}
+                </Typography>
+                <Switch
+                  checked={formData.refer_hospital}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      refer_hospital: e.target.checked,
+                    }))
+                  }
+                  color="primary"
+                />
+              </Box>
+            </Box>
+          </Grid>
+
           {/* Family Members Section */}
           <Grid item xs={12}>
             <Divider sx={{ my: 2 }} />
             <Box display="flex" alignItems="center" gap={1} mb={2}>
               <FamilyRestroom color="primary" />
               <Typography variant="subtitle1" color="text.primary" fontWeight="medium">
-                Family Members
+                FAMILY MEMBERS
               </Typography>
             </Box>
             
@@ -501,18 +530,31 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
                 </FormControl>
               </Grid>
               <Grid item xs={12} md={3}>
-                <FormControl fullWidth margin="normal">
-                  <InputLabel>Status</InputLabel>
-                  <Select
-                    name="status"
-                    value={currentMember.status}
-                    onChange={handleMemberChange}
-                    label="Status"
-                  >
-                    <MenuItem value="active">Active</MenuItem>
-                    <MenuItem value="inactive">Inactive</MenuItem>
-                  </Select>
-                </FormControl>
+                <Typography variant="subtitle1" gutterBottom color="text.primary" fontWeight="medium">
+                  Status
+                </Typography>
+                <Box display="flex" alignItems="center" gap={2}>
+                  <Typography variant="body2" color="text.secondary">
+                    {currentMember.status === "active" ? "Active" : "Inactive"}
+                  </Typography>
+                  <Switch
+                    checked={currentMember.status === "active"}
+                    onChange={(e) => {
+                      const newStatus = e.target.checked ? "active" : "inactive";
+                      setCurrentMember(prev => ({ ...prev, status: newStatus }));
+
+                      // If editing an existing member, update the state immediately
+                      if (editMemberIndex !== null) {
+                        setFamilyMembers(prev =>
+                          prev.map((member, index) =>
+                            index === editMemberIndex ? { ...member, status: newStatus } : member
+                          )
+                        );
+                      }
+                    }}
+                    color="primary"
+                  />
+                </Box>
               </Grid>
               <Grid item xs={12} md={2} sx={{ mt: 2 }}>
                 <Button
@@ -539,10 +581,10 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
                 <Table size="small" stickyHeader>
                   <TableHead>
                     <TableRow>
-                      <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.paper' }}>Name</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.paper' }}>Relationship</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.paper' }}>Status</TableCell>
-                      <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.paper' }}>Actions</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.paper' }}>NAME</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.paper' }}>RELATIONSHIP</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.paper' }}>STATUS</TableCell>
+                      <TableCell sx={{ fontWeight: 'bold', bgcolor: 'background.paper' }}>ACTIONS</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -575,7 +617,7 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
                               <Edit fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          <Tooltip title="Delete">
+                          {/* <Tooltip title="Delete">
                             <IconButton
                               color="error"
                               onClick={() => confirmDeleteMember(index)}
@@ -583,7 +625,7 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
                             >
                               <Delete fontSize="small" />
                             </IconButton>
-                          </Tooltip>
+                          </Tooltip> */}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -618,7 +660,7 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
       </Box>
 
       {/* Delete Confirmation Dialog */}
-      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+      {/* <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
         <DialogTitle>Confirm Delete</DialogTitle>
         <DialogContent>
           Are you sure you want to delete this family member?
@@ -629,7 +671,7 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
             Delete
           </Button>
         </DialogActions>
-      </Dialog>
+      </Dialog> */}
     </Paper>
   );
 };

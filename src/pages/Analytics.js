@@ -54,7 +54,6 @@ const AnalyticsDashboard = () => {
     try {
       setLoading(true);
       const response = await api.get("/analytics"); // Ensure this endpoint matches the backend
-      console.log("Analytics Data:", response.data);
       const transformedData = {
         ...response.data,
         reportTypeDistribution: response.data.reportTypeStats || []
@@ -124,7 +123,6 @@ const AnalyticsDashboard = () => {
   }
 
   if (!analyticsData || !analyticsData.reportTypeDistribution) {
-    console.log("Analytics Data State:", analyticsData);
     return (
       <Box textAlign="center" py={10}>
         <Typography variant="h6" color="error">
@@ -523,59 +521,55 @@ const AnalyticsDashboard = () => {
       </Tabs>
 
       {activeTab === 0 && (
-        <Grid container spacing={4}>
-          <Grid item xs={12}>
-            <Card elevation={3}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Monthly Trends
-                </Typography>
-                <Divider sx={{ mb: 2 }} />
-                <Chart
-                  options={monthlyTrendsOptions}
-                  series={monthlyTrendsSeries}
-                  type="line"
-                  height={350}
-                />
-              </CardContent>
-            </Card>
-          </Grid>
-          <Grid item xs={12}>
-            <Card elevation={3}>
-              <CardContent>
-                <Box display="flex" justifyContent="space-between" alignItems="center">
-                  <Typography variant="h6" gutterBottom>
-                    Daily Activity (Last 30 Days)
-                  </Typography>
-                  <LocalizationProvider dateAdapter={AdapterDateFns}>
-                    <Box display="flex" gap={1}>
-                      <DatePicker
-                        label="Start Date"
-                        value={dateRange.start}
-                        onChange={(date) => handleDateRangeChange('start', date)}
-                        renderInput={(params) => <TextField {...params} size="small" />}
-                      />
-                      <DatePicker
-                        label="End Date"
-                        value={dateRange.end}
-                        onChange={(date) => handleDateRangeChange('end', date)}
-                        renderInput={(params) => <TextField {...params} size="small" />}
-                      />
-                    </Box>
-                  </LocalizationProvider>
-                </Box>
-                <Divider sx={{ mb: 2 }} />
-                <Chart
-                  options={dailyActivityOptions}
-                  series={dailyActivitySeries}
-                  type="bar"
-                  height={350}
-                />
-              </CardContent>
-            </Card>
-          </Grid>
-        </Grid>
-      )}
+  <Box sx={{ width: '100%' }}>
+    <Grid container spacing={4}>
+      {/* Monthly Trends - Full Width */}
+      <Grid item xs={12} 
+      sx ={{
+        width: '100%',
+
+      }}>
+        <Card elevation={3}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Monthly Trends
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Chart
+              options={monthlyTrendsOptions}
+              series={monthlyTrendsSeries}
+              type="line"
+              height={350}
+              width="100%"
+            />
+          </CardContent>
+        </Card>
+      </Grid>
+      
+      {/* Daily Activity - Full Width */}
+      <Grid item xs={12} 
+      sx ={{
+        width: '100%',
+
+      }}>        <Card elevation={3}>
+          <CardContent>
+            <Typography variant="h6" gutterBottom>
+              Daily Activity
+            </Typography>
+            <Divider sx={{ mb: 2 }} />
+            <Chart
+              options={dailyActivityOptions}
+              series={dailyActivitySeries}
+              type="bar"
+              height={350}
+              width="100%"
+            />
+          </CardContent>
+        </Card>
+      </Grid>
+    </Grid>
+  </Box>
+)}
 
       {activeTab === 1 && (
         <Grid container spacing={4}>
@@ -656,7 +650,7 @@ const AnalyticsDashboard = () => {
                         <TableCell align="right">Reports Uploaded</TableCell>
                         <TableCell align="right">Unique Patients</TableCell>
                         <TableCell align="right">Report Types</TableCell>
-                        <TableCell align="center">Actions</TableCell>
+                        {/* <TableCell align="center">Actions</TableCell> */}
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -673,13 +667,13 @@ const AnalyticsDashboard = () => {
                           <TableCell align="right">{user.report_count}</TableCell>
                           <TableCell align="right">{user.unique_patients}</TableCell>
                           <TableCell align="right">{user.report_types_uploaded}</TableCell>
-                          <TableCell align="center">
+                          {/* <TableCell align="center">
                             <Tooltip title="View User Activity">
                               <IconButton size="small">
                                 <Person fontSize="small" />
                               </IconButton>
                             </Tooltip>
-                          </TableCell>
+                          </TableCell> */}
                         </TableRow>
                       ))}
                     </TableBody>

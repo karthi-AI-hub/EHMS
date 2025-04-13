@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use } from "react";
+import React, { useState, useEffect, use, useMemo } from "react";
 import {
   Button,
   Select,
@@ -31,7 +31,7 @@ import {
   DialogActions,
   List,
   ListItem,
-  ListItemText
+  ListItemText,
 } from "@mui/material";
 import {
   Upload,
@@ -45,7 +45,7 @@ import {
   ArrowDownward,
   Close,
   Delete,
-  History
+  History,
 } from "@mui/icons-material";
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../utils/api";
@@ -79,19 +79,29 @@ const EmployeeReports = () => {
   const [instructions, setInstructions] = useState({});
   const [newInstruction, setNewInstruction] = useState("");
   const [isInstructionDialogOpen, setIsInstructionDialogOpen] = useState(false);
-  const [selectedReportForInstruction, setSelectedReportForInstruction] = useState(null);
+  const [selectedReportForInstruction, setSelectedReportForInstruction] =
+    useState(null);
   const [metadataDialogOpen, setMetadataDialogOpen] = useState(false);
   const [selectedMetadata, setSelectedMetadata] = useState(null);
   const { user } = useAuth();
   const navigate = useNavigate();
   const [verifyingAccess, setVerifyingAccess] = useState(true);
-  const indexOfLastReport = currentPage * reportsPerPage;
-  const indexOfFirstReport = indexOfLastReport - reportsPerPage;
-  const currentReports = filteredReports.slice(indexOfFirstReport, indexOfLastReport);
-  const totalPages = Math.max(1, Math.ceil(filteredReports.length / reportsPerPage));
-
-  const reportTypes = ["All", "Lab", "Ecg", "Scan", "Xray", "Pharmacy", "Others"];
-  const labSubtypes = ["All", "Hematology", "Biochemistry", "MicroBiology", "BloodBank"];
+  const reportTypes = [
+    "All",
+    "Lab",
+    "Ecg",
+    "Scan",
+    "Xray",
+    "Pharmacy",
+    "Others",
+  ];
+  const labSubtypes = [
+    "All",
+    "Hematology",
+    "Biochemistry",
+    "MicroBiology",
+    "BloodBank",
+  ];
   const pharmacySubtypes = ["All", "InPharmacy", "OutPharmacy"];
 
   const fetchReports = async () => {
@@ -99,7 +109,7 @@ const EmployeeReports = () => {
     setError(null);
     try {
       const response = await api.get(`/reports/${employeeId}`);
-      
+
       // Handle case where backend returns message structure
       if (response.data.message) {
         if (response.data.code === "NO_REPORTS") {
@@ -111,20 +121,22 @@ const EmployeeReports = () => {
         // For other messages, treat as error
         throw new Error(response.data.message);
       }
-  
+
       const reports = response.data;
-      const filtered = reports.filter(report => 
-        report.employee_id === employeeId
+      const filtered = reports.filter(
+        (report) => report.employee_id === employeeId
       );
-  
+
       try {
-        const feedbackResponse = await api.get(`/instructions/latest/${employeeId}`);
+        const feedbackResponse = await api.get(
+          `/instructions/latest/${employeeId}`
+        );
         const feedbackData = feedbackResponse.data;
         const feedbackMap = feedbackData.reduce((acc, feedback) => {
           acc[feedback.report_id] = [feedback];
           return acc;
         }, {});
-  
+
         setReports(filtered);
         setFilteredReports(filtered);
         setInstructions(feedbackMap);
@@ -134,7 +146,6 @@ const EmployeeReports = () => {
         setFilteredReports(filtered);
         setInstructions({});
       }
-      
     } catch (error) {
       if (error.response?.status === 404) {
         if (error.response.data?.code === "USER_NOT_FOUND") {
@@ -155,35 +166,40 @@ const EmployeeReports = () => {
 
   const checkFamilyMemberAccess = async (requestedId, currentUserId) => {
     try {
-      console.log(`Checking access for ${currentUserId} to ${requestedId}'s reports`);
+      console.log(
+        `Checking access for ${currentUserId} to ${requestedId}'s reports`
+      );
       const response = await api.get(`/checkAccess`, {
         params: {
           employee_id: currentUserId,
-          dependent_id: requestedId
-        }
+          dependent_id: requestedId,
+        },
       });
-      console.log('Access check response:', response.data);
+      console.log("Access check response:", response.data);
       return response.data.isFamilyMember;
     } catch (error) {
       console.error("Error checking family member:", {
         error: error.message,
         response: error.response?.data,
-        status: error.response?.status
+        status: error.response?.status,
       });
       return false;
     }
   };
 
   useEffect(() => {
-    if (!user) return; 
-  
+    if (!user) return;
+
     const verifyAccess = async () => {
       try {
         if (user.role !== "EMPLOYEE" || employeeId === user.employeeId) {
           return true;
         }
-  
-        const isFamilyMember = await checkFamilyMemberAccess(employeeId, user.employeeId);
+
+        const isFamilyMember = await checkFamilyMemberAccess(
+          employeeId,
+          user.employeeId
+        );
         if (!isFamilyMember) {
           console.log(`Redirecting to own reports (${user.employeeId})`);
           navigate(`/employee/reports/${user.employeeId}`, { replace: true });
@@ -200,70 +216,97 @@ const EmployeeReports = () => {
     const fetchFamilyMembers = async () => {
       try {
         const response = await api.get(`/employee/${user.employeeId}/family`);
-        
+
         // Create family members array with Self included
         const allMembers = [
           {
             dependent_id: user.employeeId,
             name: user.name,
-            relation: "SELF"
+            relation: "SELF",
           },
-          ...response.data
+          ...response.data,
         ];
-        
+
         setFamilyMembers(allMembers);
-        
+
         // Find the current member based on employeeId in URL
-        const currentMember = allMembers.find(member => 
-          member.dependent_id === employeeId
+        const currentMember = allMembers.find(
+          (member) => member.dependent_id === employeeId
         );
-        
-        setSelectedMember(currentMember || {
-          id: user.employeeId,
-          name: user.name,
-          relation: "SELF"
-        });
+
+        setSelectedMember(
+          currentMember || {
+            id: user.employeeId,
+            name: user.name,
+            relation: "SELF",
+          }
+        );
       } catch (error) {
         console.error("Error fetching family members:", error);
         setSelectedMember({
           id: user.employeeId,
           name: user.name,
-          relation: "SELF"
+          relation: "SELF",
         });
       }
     };
-    
+
     const fetchData = async () => {
       setVerifyingAccess(true);
       const accessGranted = await verifyAccess();
-      
+
       if (accessGranted) {
-        try{
-        await fetchFamilyMembers();
-        await fetchReports();
-        }catch (error) {
+        try {
+          await fetchFamilyMembers();
+          await fetchReports();
+        } catch (error) {
           setError("Failed to load data. Please try again.");
         }
       }
-      
+
       setVerifyingAccess(false);
     };
 
     fetchData();
   }, [employeeId, user, navigate]);
 
-  
   useEffect(() => {
     setCurrentPage(1);
   }, [filteredReports]);
 
-    if (verifyingAccess) {
-      return <LoadingScreen message="Verifying access..." />;
-    }
+  // Always compute sortedFilteredReports and latestReportByType
+  const sortedFilteredReports = useMemo(() => {
+    return [...filteredReports].sort(
+      (a, b) => new Date(b.uploaded_at) - new Date(a.uploaded_at)
+    );
+  }, [filteredReports]);
+  
+  const latestReportByType = useMemo(() => {
+    const map = {};
+    sortedFilteredReports.forEach((report) => {
+      const type = report.report_type;
+      if (!map[type] || new Date(report.uploaded_at) > new Date(map[type].uploaded_at)) {
+        map[type] = report;
+      }
+    });
+    return map;
+  }, [sortedFilteredReports]);
+  
+  const indexOfLastReport = currentPage * reportsPerPage;
+  const indexOfFirstReport = indexOfLastReport - reportsPerPage;
+  const currentReports = sortedFilteredReports.slice(indexOfFirstReport, indexOfLastReport);
 
-    if (loading) {
-      return <LoadingScreen message="Fetching reports..." />;
-    }
+  // Define totalPages so that it's available for pagination
+  const totalPages = Math.ceil(filteredReports.length / reportsPerPage);
+
+  // Now place your early return conditions:
+  if (verifyingAccess) {
+    return <LoadingScreen message="Verifying access..." />;
+  }
+
+  if (loading) {
+    return <LoadingScreen message="Fetching reports..." />;
+  }
 
   const fetchInstructions = async (reportId) => {
     try {
@@ -292,15 +335,18 @@ const EmployeeReports = () => {
 
   const handleDownloadReport = async (reportId, fileName) => {
     try {
-      const response = await api.get(`/reports/view/${reportId}/${employeeId}`, {
-        responseType: "blob",
-      });
+      const response = await api.get(
+        `/reports/view/${reportId}/${employeeId}`,
+        {
+          responseType: "blob",
+        }
+      );
 
       if (!response.data) {
         setError("Report not found.");
         return;
       }
-      
+
       const fileURL = window.URL.createObjectURL(new Blob([response.data]));
       const link = document.createElement("a");
       link.href = fileURL;
@@ -316,16 +362,21 @@ const EmployeeReports = () => {
 
   const handleViewReport = async (reportId) => {
     try {
-      const response = await api.get(`/reports/view/${reportId}/${employeeId}`, {
-        responseType: "blob",
-      });
-  
+      const response = await api.get(
+        `/reports/view/${reportId}/${employeeId}`,
+        {
+          responseType: "blob",
+        }
+      );
+
       if (!response.data) {
         setError("Report not found.");
         return;
       }
-      
-      const fileURL = window.URL.createObjectURL(new Blob([response.data], { type: "application/pdf" }));
+
+      const fileURL = window.URL.createObjectURL(
+        new Blob([response.data], { type: "application/pdf" })
+      );
       window.open(fileURL, "_blank");
     } catch (error) {
       console.error("Error viewing report:", error);
@@ -338,9 +389,10 @@ const EmployeeReports = () => {
       }
     }
   };
-  
+
   const handleSort = (field) => {
-    const newSortOrder = sortField === field && sortOrder === "asc" ? "desc" : "asc";
+    const newSortOrder =
+      sortField === field && sortOrder === "asc" ? "desc" : "asc";
     setSortField(field);
     setSortOrder(newSortOrder);
 
@@ -372,7 +424,7 @@ const EmployeeReports = () => {
 
   const handlePageChange = (event, value) => {
     setCurrentPage(value);
-  };  
+  };
 
   const handleReportsPerPageChange = (event) => {
     setReportsPerPage(Number(event.target.value));
@@ -393,34 +445,44 @@ const EmployeeReports = () => {
     if (startDate || endDate) {
       filtered = filtered.filter((report) => {
         const reportDate = new Date(report.uploaded_at);
-        return (!startDate || reportDate >= startDate) && (!endDate || reportDate <= endDate);
+        return (
+          (!startDate || reportDate >= startDate) &&
+          (!endDate || reportDate <= endDate)
+        );
       });
     }
 
     if (searchTerm) {
-      filtered = filtered.filter((report) =>
-        report.file_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        report.report_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (report.notes && report.notes.toLowerCase().includes(searchTerm.toLowerCase())),
-    )}
+      filtered = filtered.filter(
+        (report) =>
+          report.file_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          report.report_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          (report.notes &&
+            report.notes.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
 
     setFilteredReports(filtered);
   };
 
   const handleUploadClick = () => {
-    navigate(`/technician/upload-reports/${employeeId}?type=${reportType}&subtype=${subtype}`);
+    navigate(
+      `/technician/upload-reports/${employeeId}?type=${reportType}&subtype=${subtype}`
+    );
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "N/A";
     const date = new Date(dateString);
-    return isNaN(date.getTime()) ? "N/A" : date.toLocaleDateString("en-US", {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return isNaN(date.getTime())
+      ? "N/A"
+      : date.toLocaleDateString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
   };
 
   const handleSearch = (event) => {
@@ -454,7 +516,7 @@ const EmployeeReports = () => {
       Scan: "#9c27b0",
       Xray: "#ff9800",
       Pharmacy: "#f44336",
-      Others: "#607d8b"
+      Others: "#607d8b",
     };
     return colors[type] || "#607d8b";
   };
@@ -471,7 +533,7 @@ const EmployeeReports = () => {
     }
 
     try {
-            await api.delete(`/reports/delete/${selectedReportId}`, {
+      await api.delete(`/reports/delete/${selectedReportId}`, {
         data: {
           deleted_by: user.employeeId,
           delete_reason: deleteReason,
@@ -498,64 +560,82 @@ const EmployeeReports = () => {
   return (
     <Box className="technician-reports-container">
       {loading ? (
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+        <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
           <Skeleton variant="rectangular" height={56} />
           <Skeleton variant="rectangular" height={400} />
           <Skeleton variant="rectangular" height={56} />
         </Box>
-      ) :  (
+      ) : (
         <>
-<Box className="header-container">
-  <Typography variant="h5" fontWeight="600">
-    Medical Reports {selectedMember?.dependent_id !== user.employeeId && 
-      `for ${selectedMember?.name || ''} (${selectedMember?.relation || ''})`}
-  </Typography>
-  <Typography variant="subtitle1" color="text.secondary">
-    {selectedMember?.dependent_id === user.employeeId ? 
-      `Employee ID: ${employeeId}` : 
-      `Dependent ID: ${employeeId}`}
-  </Typography>
-</Box>
-
+          {user.role === "EMPLOYEE" && (
+            <Box className="header-container">
+              <Typography variant="h5" fontWeight="600">
+                Medical Reports{" "}
+                {selectedMember?.dependent_id !== user.employeeId &&
+                  `for ${selectedMember?.name || ""} (${
+                    selectedMember?.relation || ""
+                  })`}
+              </Typography>
+              <Typography variant="subtitle1" color="text.secondary">
+                {selectedMember?.dependent_id === user.employeeId
+                  ? `Employee ID: ${employeeId}`
+                  : `Dependent ID: ${employeeId}`}
+              </Typography>
+            </Box>
+          )}
+          {user.role !== "EMPLOYEE" && (
+            <Box className="header-container">
+              <Typography variant="h5" fontWeight="600">
+                Medical Reports
+              </Typography>
+              <Typography variant="subtitle1" color="text.secondary">
+                { `Employee ID: ${employeeId}`}
+              </Typography>
+            </Box>
+          )}
           <Divider sx={{ my: 3 }} />
 
           {/* Action Bar */}
           <Box className="action-bar">
-            {(user.role === "EMPLOYEE") && (
-               <FormControl sx={{ minWidth: 150, mr: 2 }}>
-               <InputLabel>View Reports For</InputLabel>
-               <Select
-  value={selectedMember?.dependent_id || user.employeeId}
-  onChange={(e) => {
-    const memberId = e.target.value;
-    navigate(`/employee/reports/${memberId}`);
-  }}
-  label="View Reports For"
-  renderValue={(selected) => {
-    const member = familyMembers.find(m => m.dependent_id === selected);
-    return member ? `${member.name} (${member.relation})` : "Self";
-  }}
->
-  {familyMembers.map((member) => (
-    <MenuItem 
-      key={member.dependent_id} 
-      value={member.dependent_id}
-    >
-      {member.name} ({member.relation})
-    </MenuItem>
-  ))}
-</Select>
-  </FormControl>
-  )}
-            {(user.role === "TECHNICIAN") && (
-            <Button
-              variant="contained"
-              startIcon={<Upload />}
-              onClick={handleUploadClick}
-              sx={{ mr: 2 }}
-            >
-              Upload Report
-            </Button>
+            {user.role === "EMPLOYEE" && (
+              <FormControl sx={{ minWidth: 150, mr: 2 }}>
+                <InputLabel>View Reports For</InputLabel>
+                <Select
+                  value={selectedMember?.dependent_id || user.employeeId}
+                  onChange={(e) => {
+                    const memberId = e.target.value;
+                    navigate(`/employee/reports/${memberId}`);
+                  }}
+                  label="View Reports For"
+                  renderValue={(selected) => {
+                    const member = familyMembers.find(
+                      (m) => m.dependent_id === selected
+                    );
+                    return member
+                      ? `${member.name} (${member.relation})`
+                      : "Self";
+                  }}
+                >
+                  {familyMembers.map((member) => (
+                    <MenuItem
+                      key={member.dependent_id}
+                      value={member.dependent_id}
+                    >
+                      {member.name} ({member.relation})
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+            {user.role === "TECHNICIAN" && (
+              <Button
+                variant="contained"
+                startIcon={<Upload />}
+                onClick={handleUploadClick}
+                sx={{ mr: 2 }}
+              >
+                Upload Report
+              </Button>
             )}
 
             <Button
@@ -629,7 +709,10 @@ const EmployeeReports = () => {
                       onChange={handleSubtypeChange}
                       label="Subtype"
                     >
-                      {(reportType === "Lab" ? labSubtypes : pharmacySubtypes).map((sub) => (
+                      {(reportType === "Lab"
+                        ? labSubtypes
+                        : pharmacySubtypes
+                      ).map((sub) => (
                         <MenuItem key={sub} value={sub}>
                           {sub}
                         </MenuItem>
@@ -662,7 +745,7 @@ const EmployeeReports = () => {
                 <Button
                   variant="text"
                   onClick={handleResetFilters}
-                  sx={{ height: '56px' }}
+                  sx={{ height: "56px" }}
                 >
                   Clear Filters
                 </Button>
@@ -689,14 +772,18 @@ const EmployeeReports = () => {
 
           {/* Error Message */}
           {error && (
-            <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+            <Alert
+              severity="error"
+              sx={{ mb: 3 }}
+              onClose={() => setError(null)}
+            >
               {error}
             </Alert>
           )}
 
           {/* No Reports Found */}
           {filteredReports.length === 0 && !loading && (
-            <Paper elevation={0} sx={{ p: 4, textAlign: 'center' }}>
+            <Paper elevation={0} sx={{ p: 4, textAlign: "center" }}>
               <Typography variant="h6" color="text.secondary">
                 No reports found matching your criteria
               </Typography>
@@ -713,7 +800,11 @@ const EmployeeReports = () => {
           {/* Reports Table */}
           {filteredReports.length > 0 && (
             <>
-              <TableContainer component={Paper} elevation={2} sx={{ borderRadius: 2 }}>
+              <TableContainer
+                component={Paper}
+                elevation={2}
+                sx={{ borderRadius: 2 }}
+              >
                 <Table>
                   <TableHead>
                     <TableRow>
@@ -723,9 +814,12 @@ const EmployeeReports = () => {
                           <IconButton
                             size="small"
                             onClick={() => handleSort("file_name")}
-                            color={sortField === "file_name" ? "primary" : "default"}
+                            color={
+                              sortField === "file_name" ? "primary" : "default"
+                            }
                           >
-                            {sortField === "file_name" && sortOrder === "asc" ? (
+                            {sortField === "file_name" &&
+                            sortOrder === "asc" ? (
                               <ArrowUpward fontSize="small" />
                             ) : (
                               <ArrowDownward fontSize="small" />
@@ -739,9 +833,14 @@ const EmployeeReports = () => {
                           <IconButton
                             size="small"
                             onClick={() => handleSort("report_type")}
-                            color={sortField === "report_type" ? "primary" : "default"}
+                            color={
+                              sortField === "report_type"
+                                ? "primary"
+                                : "default"
+                            }
                           >
-                            {sortField === "report_type" && sortOrder === "asc" ? (
+                            {sortField === "report_type" &&
+                            sortOrder === "asc" ? (
                               <ArrowUpward fontSize="small" />
                             ) : (
                               <ArrowDownward fontSize="small" />
@@ -751,9 +850,7 @@ const EmployeeReports = () => {
                       </TableCell>
                       <TableCell>Notes</TableCell>
                       {["DOCTOR", "ADMIN"].includes(user.role) && (
-                     <TableCell>
-                     Feedback
-                   </TableCell>
+                        <TableCell>Feedback</TableCell>
                       )}
                       <TableCell>
                         <Box display="flex" alignItems="center">
@@ -761,9 +858,14 @@ const EmployeeReports = () => {
                           <IconButton
                             size="small"
                             onClick={() => handleSort("uploaded_at")}
-                            color={sortField === "uploaded_at" ? "primary" : "default"}
+                            color={
+                              sortField === "uploaded_at"
+                                ? "primary"
+                                : "default"
+                            }
                           >
-                            {sortField === "uploaded_at" && sortOrder === "asc" ? (
+                            {sortField === "uploaded_at" &&
+                            sortOrder === "asc" ? (
                               <ArrowUpward fontSize="small" />
                             ) : (
                               <ArrowDownward fontSize="small" />
@@ -792,10 +894,27 @@ const EmployeeReports = () => {
                           <Tooltip title="Click to view Report Details">
                             <span>{report.id}</span>
                           </Tooltip>
+{/* Show "Latest" chip if this is the most recent report for its type */}
+                          {latestReportByType[report.report_type]?.id === report.id && (
+                            <Chip
+                              label="New"
+                              size="small"
+                              sx={{
+                                ml: 1,
+                                backgroundColor: "red",
+                                color: "white",
+                              }}
+                              variant="outlined"
+                            />
+                          )}
                         </TableCell>
                         <TableCell>
                           <Chip
-                            label={report.report_subtype === "General" ? report.report_type : report.report_subtype}
+                            label={
+                              report.report_subtype === "General"
+                                ? report.report_type
+                                : report.report_subtype
+                            }
                             size="small"
                             sx={{
                               backgroundColor: getTypeColor(report.report_type),
@@ -808,16 +927,31 @@ const EmployeeReports = () => {
                           <TableCell>
                             {(instructions[report.id] || []).length > 0 ? (
                               <Box>
-                                <Typography variant="body2" color="text.primary">
-                                  {instructions[report.id][0].instruction} {/* Show only the latest feedback */}
+                                <Typography
+                                  variant="body2"
+                                  color="text.primary"
+                                >
+                                  {instructions[report.id][0].instruction}{" "}
+                                  {/* Show only the latest feedback */}
                                 </Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  {new Date(instructions[report.id][0].created_at).toLocaleString()} by{" "}
-                                  <strong>{instructions[report.id][0].creator?.name}</strong>
+                                <Typography
+                                  variant="caption"
+                                  color="text.secondary"
+                                >
+                                  {new Date(
+                                    instructions[report.id][0].created_at
+                                  ).toLocaleString()}{" "}
+                                  by{" "}
+                                  <strong>
+                                    {instructions[report.id][0].creator?.name}
+                                  </strong>
                                 </Typography>
                               </Box>
                             ) : (
-                              <Typography variant="body2" color="text.secondary">
+                              <Typography
+                                variant="body2"
+                                color="text.secondary"
+                              >
                                 No feedback available
                               </Typography>
                             )}
@@ -825,23 +959,31 @@ const EmployeeReports = () => {
                         )}
                         <TableCell>{formatDate(report.uploaded_at)}</TableCell>
                         <TableCell align="center">
-                          <Stack direction="row" spacing={1} justifyContent="center">
-                          {(user.role === "DOCTOR" || user.role === "ADMIN") && (
-                            <Tooltip title="View Feedback History">
+                          <Stack
+                            direction="row"
+                            spacing={1}
+                            justifyContent="center"
+                          >
+                            {(user.role === "DOCTOR" ||
+                              user.role === "ADMIN") && (
+                              <Tooltip title="View Feedback History">
+                                <IconButton
+                                  color="primary"
+                                  onClick={() => {
+                                    fetchInstructions(report.id);
+                                    setSelectedReportForInstruction(report.id);
+                                    setIsInstructionDialogOpen(true);
+                                  }}
+                                >
+                                  <History />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            <Tooltip title="View Report">
                               <IconButton
                                 color="primary"
-                                onClick={() => {
-                                  fetchInstructions(report.id);
-                                  setSelectedReportForInstruction(report.id);
-                                  setIsInstructionDialogOpen(true);
-                                }}
+                                onClick={() => handleViewReport(report.id)}
                               >
-                                <History />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                            <Tooltip title="View Report">
-                              <IconButton color="primary" onClick={() => handleViewReport(report.id)}>
                                 <Visibility />
                               </IconButton>
                             </Tooltip>
@@ -849,15 +991,24 @@ const EmployeeReports = () => {
                               <Tooltip title="Download Report">
                                 <IconButton
                                   color="secondary"
-                                  onClick={() => handleDownloadReport(report.id, report.file_name)}
+                                  onClick={() =>
+                                    handleDownloadReport(
+                                      report.id,
+                                      report.file_name
+                                    )
+                                  }
                                 >
                                   <Download />
                                 </IconButton>
                               </Tooltip>
                             )}
-                            {(user.role === "TECHNICIAN" || user.role === "ADMIN") && (
+                            {(user.role === "TECHNICIAN" ||
+                              user.role === "ADMIN") && (
                               <Tooltip title="Delete Report">
-                                <IconButton color="error" onClick={() => handleDeleteClick(report.id)}>
+                                <IconButton
+                                  color="error"
+                                  onClick={() => handleDeleteClick(report.id)}
+                                >
                                   <Delete />
                                 </IconButton>
                               </Tooltip>
@@ -872,7 +1023,11 @@ const EmployeeReports = () => {
 
               {/* Pagination */}
               <Box className="pagination-container" sx={{ mt: 3 }}>
-                <FormControl variant="outlined" size="small" sx={{ minWidth: 120 }}>
+                <FormControl
+                  variant="outlined"
+                  size="small"
+                  sx={{ minWidth: 120 }}
+                >
                   <InputLabel>Rows per page</InputLabel>
                   <Select
                     value={reportsPerPage}
@@ -897,7 +1052,9 @@ const EmployeeReports = () => {
                 />
 
                 <Typography variant="body2" color="text.secondary">
-                  Showing {indexOfFirstReport + 1}-{Math.min(indexOfLastReport, filteredReports.length)} of {filteredReports.length} reports
+                  Showing {indexOfFirstReport + 1}-
+                  {Math.min(indexOfLastReport, filteredReports.length)} of{" "}
+                  {filteredReports.length} reports
                 </Typography>
               </Box>
             </>
@@ -905,11 +1062,15 @@ const EmployeeReports = () => {
         </>
       )}
 
-      <Dialog open={deleteDialogOpen} onClose={() => setDeleteDialogOpen(false)}>
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
         <DialogTitle>Delete Report</DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Please provide a reason for deleting this report. This action cannot be undone.
+            Please provide a reason for deleting this report. This action cannot
+            be undone.
           </DialogContentText>
           <TextField
             autoFocus
@@ -933,114 +1094,126 @@ const EmployeeReports = () => {
       </Dialog>
 
       <Dialog
-  open={isInstructionDialogOpen}
-  onClose={() => setIsInstructionDialogOpen(false)}
-  maxWidth="md"
-  fullWidth
->
-  <DialogTitle>
-    <Box display="flex" justifyContent="space-between" alignItems="center">
-      <span>Report Instructions</span>
-      <IconButton onClick={() => setIsInstructionDialogOpen(false)}>
-        <Close />
-      </IconButton>
-    </Box>
-  </DialogTitle>
-  <DialogContent dividers>
-    <Box mb={3}>
-      <Typography variant="h6" gutterBottom>
-        Add New Instruction
-      </Typography>
-      <TextField
+        open={isInstructionDialogOpen}
+        onClose={() => setIsInstructionDialogOpen(false)}
+        maxWidth="md"
         fullWidth
-        multiline
-        rows={3}
-        variant="outlined"
-        label="New instruction"
-        value={newInstruction}
-        onChange={(e) => setNewInstruction(e.target.value)}
-      />
-    </Box>
-    
-    <Divider />
-    
-    <Box mt={3}>
-      <Typography variant="h6" gutterBottom>
-        Instruction History
-      </Typography>
-      {instructions[selectedReportForInstruction]?.length > 0 ? (
-        <List dense>
-          {instructions[selectedReportForInstruction].map((instruction, index) => (
-            <ListItem key={instruction.id} alignItems="flex-start">
-              <ListItemText
-                primary={
-                  <Box display="flex" justifyContent="space-between">
-                    <Typography variant="body1">
-                      {instruction.instruction}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {index === 0 && (
-                        <Chip 
-                          label="Latest" 
-                          size="small" 
-                          color="primary" 
-                          variant="outlined" 
-                        />
-                      )}
-                    </Typography>
-                  </Box>
-                }
-                secondary={
-                  <Typography variant="caption" color="text.secondary">
-                    By {instruction.created_by} • {new Date(instruction.created_at).toLocaleString()}
-                  </Typography>
-                }
-              />
-              {index < instructions[selectedReportForInstruction].length - 1 && (
-                <Divider variant="inset" component="li" />
-              )}
-            </ListItem>
-          ))}
-        </List>
-      ) : (
-        <Typography variant="body2" color="text.secondary">
-          No instruction history available
-        </Typography>
-      )}
-    </Box>
-  </DialogContent>
-  <DialogActions>
-    <Button onClick={() => setIsInstructionDialogOpen(false)}>Cancel</Button>
-    <Button
-      onClick={async () => {
-        if (!newInstruction.trim()) return;
-        
-        try {
-          const response = await api.post("/instructions", {
-            reportId: selectedReportForInstruction,
-            instruction: newInstruction,
-          });
-          
-          setInstructions((prev) => ({
-            ...prev,
-            [selectedReportForInstruction]: [
-              response.data,
-              ...(prev[selectedReportForInstruction] || []),
-            ],
-          }));
-          setNewInstruction("");
-        } catch (error) {
-          console.error("Error adding instruction:", error);
-        }
-      }}
-      color="primary"
-      variant="contained"
-      disabled={!newInstruction.trim()}
-    >
-      Add Instruction
-    </Button>
-  </DialogActions>
-</Dialog>
+      >
+        <DialogTitle>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+          >
+            <span>Report Instructions</span>
+            <IconButton onClick={() => setIsInstructionDialogOpen(false)}>
+              <Close />
+            </IconButton>
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers>
+          <Box mb={3}>
+            <Typography variant="h6" gutterBottom>
+              Add New Instruction
+            </Typography>
+            <TextField
+              fullWidth
+              multiline
+              rows={3}
+              variant="outlined"
+              label="New instruction"
+              value={newInstruction}
+              onChange={(e) => setNewInstruction(e.target.value)}
+            />
+          </Box>
+
+          <Divider />
+
+          <Box mt={3}>
+            <Typography variant="h6" gutterBottom>
+              Instruction History
+            </Typography>
+            {instructions[selectedReportForInstruction]?.length > 0 ? (
+              <List dense>
+                {instructions[selectedReportForInstruction].map(
+                  (instruction, index) => (
+                    <ListItem key={instruction.id} alignItems="flex-start">
+                      <ListItemText
+                        primary={
+                          <Box display="flex" justifyContent="space-between">
+                            <Typography variant="body1">
+                              {instruction.instruction}
+                            </Typography>
+                            <Typography
+                              variant="caption"
+                              color="text.secondary"
+                            >
+                              {index === 0 && (
+                                <Chip
+                                  label="Latest"
+                                  size="small"
+                                  color="primary"
+                                  variant="outlined"
+                                />
+                              )}
+                            </Typography>
+                          </Box>
+                        }
+                        secondary={
+                          <Typography variant="caption" color="text.secondary">
+                            By {instruction.created_by} •{" "}
+                            {new Date(instruction.created_at).toLocaleString()}
+                          </Typography>
+                        }
+                      />
+                      {index <
+                        instructions[selectedReportForInstruction].length -
+                          1 && <Divider variant="inset" component="li" />}
+                    </ListItem>
+                  )
+                )}
+              </List>
+            ) : (
+              <Typography variant="body2" color="text.secondary">
+                No instruction history available
+              </Typography>
+            )}
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setIsInstructionDialogOpen(false)}>
+            Cancel
+          </Button>
+          <Button
+            onClick={async () => {
+              if (!newInstruction.trim()) return;
+
+              try {
+                const response = await api.post("/instructions", {
+                  reportId: selectedReportForInstruction,
+                  instruction: newInstruction,
+                });
+
+                setInstructions((prev) => ({
+                  ...prev,
+                  [selectedReportForInstruction]: [
+                    response.data,
+                    ...(prev[selectedReportForInstruction] || []),
+                  ],
+                }));
+                setNewInstruction("");
+              } catch (error) {
+                console.error("Error adding instruction:", error);
+              }
+            }}
+            color="primary"
+            variant="contained"
+            disabled={!newInstruction.trim()}
+          >
+            Add Instruction
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Dialog
         open={metadataDialogOpen}
@@ -1049,7 +1222,13 @@ const EmployeeReports = () => {
         fullWidth
       >
         <DialogTitle>
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
             <Typography variant="h6">Report Metadata</Typography>
             <IconButton onClick={() => setMetadataDialogOpen(false)}>
               <Close />
@@ -1058,7 +1237,9 @@ const EmployeeReports = () => {
         </DialogTitle>
         <DialogContent dividers>
           {selectedMetadata ? (
-            <Box sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}>
+            <Box
+              sx={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 2 }}
+            >
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">
                   <strong>Report ID:</strong>
@@ -1069,25 +1250,33 @@ const EmployeeReports = () => {
                 <Typography variant="subtitle2" color="text.secondary">
                   <strong>Employee ID:</strong>
                 </Typography>
-                <Typography variant="body1">{selectedMetadata.employee_id}</Typography>
+                <Typography variant="body1">
+                  {selectedMetadata.employee_id}
+                </Typography>
               </Box>
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">
                   <strong>Report Type:</strong>
                 </Typography>
-                <Typography variant="body1">{selectedMetadata.report_type}</Typography>
+                <Typography variant="body1">
+                  {selectedMetadata.report_type}
+                </Typography>
               </Box>
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">
                   <strong>Report Subtype:</strong>
                 </Typography>
-                <Typography variant="body1">{selectedMetadata.report_subtype || "N/A"}</Typography>
+                <Typography variant="body1">
+                  {selectedMetadata.report_subtype || "N/A"}
+                </Typography>
               </Box>
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">
                   <strong>Uploaded By:</strong>
                 </Typography>
-                <Typography variant="body1">{selectedMetadata.uploaded_by}</Typography>
+                <Typography variant="body1">
+                  {selectedMetadata.uploaded_by}
+                </Typography>
               </Box>
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">
@@ -1101,13 +1290,17 @@ const EmployeeReports = () => {
                 <Typography variant="subtitle2" color="text.secondary">
                   <strong>Notes:</strong>
                 </Typography>
-                <Typography variant="body1">{selectedMetadata.notes || "No notes"}</Typography>
+                <Typography variant="body1">
+                  {selectedMetadata.notes || "No notes"}
+                </Typography>
               </Box>
               <Box>
                 <Typography variant="subtitle2" color="text.secondary">
                   <strong>Is Deleted:</strong>
                 </Typography>
-                <Typography variant="body1">{selectedMetadata.is_deleted ? "Yes" : "No"}</Typography>
+                <Typography variant="body1">
+                  {selectedMetadata.is_deleted ? "Yes" : "No"}
+                </Typography>
               </Box>
               {selectedMetadata.is_deleted && (
                 <>
@@ -1115,7 +1308,9 @@ const EmployeeReports = () => {
                     <Typography variant="subtitle2" color="text.secondary">
                       <strong>Deleted By:</strong>
                     </Typography>
-                    <Typography variant="body1">{selectedMetadata.deleted_by}</Typography>
+                    <Typography variant="body1">
+                      {selectedMetadata.deleted_by}
+                    </Typography>
                   </Box>
                   <Box>
                     <Typography variant="subtitle2" color="text.secondary">
@@ -1129,7 +1324,9 @@ const EmployeeReports = () => {
                     <Typography variant="subtitle2" color="text.secondary">
                       <strong>Delete Reason:</strong>
                     </Typography>
-                    <Typography variant="body1">{selectedMetadata.delete_reason}</Typography>
+                    <Typography variant="body1">
+                      {selectedMetadata.delete_reason}
+                    </Typography>
                   </Box>
                 </>
               )}
@@ -1141,7 +1338,10 @@ const EmployeeReports = () => {
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setMetadataDialogOpen(false)} variant="outlined">
+          <Button
+            onClick={() => setMetadataDialogOpen(false)}
+            variant="outlined"
+          >
             Close
           </Button>
         </DialogActions>

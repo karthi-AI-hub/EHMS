@@ -368,10 +368,10 @@ const TechnicianList = () => {
                       <TechnicianInfoRow icon={<Email />} value={technician.email} />
                       <TechnicianInfoRow icon={<Phone />} value={technician.phone} />
                       <TechnicianInfoRow icon={<Work />} value={technician.department} />
-                      <TechnicianInfoRow 
+                      {/* <TechnicianInfoRow 
                         icon={<CalendarToday />} 
                         value={`Joined: ${new Date(technician.created_at).toLocaleDateString()}`}
-                      />
+                      /> */}
                     </CardContent>
                   </StyledCard>
                 </motion.div>
@@ -468,7 +468,7 @@ const TechnicianList = () => {
                     <TechnicianInfoRow icon={<Phone />} value={selectedTechnician?.phone} />
                     <TechnicianInfoRow icon={<Work />} value={selectedTechnician?.department} />
                   </Grid>
-                  <Grid item xs={12} md={6}>
+                  {/* <Grid item xs={12} md={6}>
                     <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 600 }}>
                       Additional Details
                     </Typography>
@@ -482,7 +482,7 @@ const TechnicianList = () => {
                         value={`Address: ${selectedTechnician.address}`}
                       />
                     )}
-                  </Grid>
+                  </Grid> */}
                 </Grid>
               </Box>
             )}
