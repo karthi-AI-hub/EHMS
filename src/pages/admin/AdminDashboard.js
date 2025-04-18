@@ -133,9 +133,10 @@ const Dashboard = ({ roleFilter = null }) => {
       const response = await api.get("/allemployees");
       const data = response.data.map(emp => ({
         ...emp,
+        status: ((emp.status || "inactive").toLowerCase().trim()),
         family: emp.family.map(f => ({
           ...f,
-          status: f.status.toLowerCase(), // Normalize status to lowercase
+          status: ((f.status || "inactive").toLowerCase().trim()),
         })),
       }));
 
@@ -154,7 +155,7 @@ const Dashboard = ({ roleFilter = null }) => {
         beneficiaries: activeEmployees + activeFamilyMembers, // Active employees + active family members
       };
 
-      setStats(statsData);
+      setStats(statsData)
 
       setEmployees(data);
       setFilteredEmployees(data);
