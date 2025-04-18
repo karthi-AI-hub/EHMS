@@ -18,7 +18,6 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  CircularProgress,
   DialogActions,
   Button,
   Fade,
@@ -31,7 +30,6 @@ import {
   Email,
   Phone,
   Work,
-  CalendarToday,
   Edit,
   Visibility,
   Search,
@@ -42,7 +40,6 @@ import {
 } from "@mui/icons-material";
 import { motion, AnimatePresence } from "framer-motion";
 import api from "../utils/api";
-import DoctorForm from "./UserForm";
 import UserForm from "./UserForm"; // Import the reusable form
 import { useAuth } from "../context/AuthContext";
 import LoadingScreen from "../components/common/LoadingScreen";
@@ -131,7 +128,6 @@ const DoctorsList = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [actionType, setActionType] = useState("view");
-  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchDoctors();

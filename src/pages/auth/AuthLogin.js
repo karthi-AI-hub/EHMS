@@ -20,7 +20,6 @@ const AuthLogin = () => {
   const validRoles = ["Employee", "Doctor", "Technician", "Admin"];
 
   useEffect(() => {
-    // Redirect to home page if role is missing or invalid
     if (!role || !validRoles.includes(role)) {
       navigate("/");
     }

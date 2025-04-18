@@ -1,4 +1,4 @@
-import React, { useState, useEffect, use, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import {
   Button,
   Select,
@@ -50,8 +50,8 @@ import {
 import { useParams, useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import LoadingScreen from "../components/common/LoadingScreen";
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+// import DatePicker from "react-datepicker";
+// import "react-datepicker/dist/react-datepicker.css";
 import "../pages/styles/EmployeeReports.css";
 import { useAuth } from "../context/AuthContext";
 
@@ -716,7 +716,7 @@ const EmployeeReports = () => {
                   </FormControl>
                 )}
 
-                <DatePicker
+                {/* <DatePicker
                   selectsRange
                   startDate={startDate}
                   endDate={endDate}
@@ -735,7 +735,7 @@ const EmployeeReports = () => {
                       }}
                     />
                   }
-                />
+                /> */}
 
                 <Button
                   variant="text"

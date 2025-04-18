@@ -20,7 +20,6 @@ import {
   DialogContent,
   DialogActions,
   Button,
-  CircularProgress,
   Fade,
   Grow,
   Slide,
@@ -31,7 +30,6 @@ import {
   Email,
   Phone,
   Work,
-  CalendarToday,
   Edit,
   Visibility,
   Search,
@@ -131,7 +129,6 @@ const TechnicianList = () => {
   const [openDialog, setOpenDialog] = useState(false);
   const [selectedTechnician, setSelectedTechnician] = useState(null);
   const [actionType, setActionType] = useState("view");
-  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
     fetchTechnicians();

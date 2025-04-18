@@ -44,7 +44,6 @@ import {
   Add,
   Close,
   CheckCircle,
-  Warning,
   Info,
   Refresh,
   PauseCircle,
@@ -168,25 +167,25 @@ const EmployeeDirectory = () => {
     }
   };
 
-  const fetchConditions = async (employeeId) => {
-    try {
-      const response = await api.get(`/conditions/${employeeId}`);
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching conditions:", error);
-      return [];
-    }
-  };
+  // const fetchConditions = async (employeeId) => {
+  //   try {
+  //     const response = await api.get(`/conditions/${employeeId}`);
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error("Error fetching conditions:", error);
+  //     return [];
+  //   }
+  // };
 
-  const fetchAllergies = async (employeeId) => {
-    try {
-      const response = await api.get(`/allergies/${employeeId}`);
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching allergies:", error);
-      return [];
-    }
-  };
+  // const fetchAllergies = async (employeeId) => {
+  //   try {
+  //     const response = await api.get(`/allergies/${employeeId}`);
+  //     return response.data;
+  //   } catch (error) {
+  //     console.error("Error fetching allergies:", error);
+  //     return [];
+  //   }
+  // };
 
   const handleSearch = (e) => {
     const query = e.target.value.toLowerCase();
@@ -225,9 +224,6 @@ const EmployeeDirectory = () => {
     setFilteredEmployees(sortedData);
   };
 
-  const handleChangePage = (event, newPage) => {
-    setPage(newPage);
-  };
 
   const handleChangeRowsPerPage = (event) => {
     setRowsPerPage(parseInt(event.target.value, 10));

@@ -1,14 +1,9 @@
-// components/EmployeeProfile.jsx
 import React from "react";
 import {
   Avatar,
   Typography,
   Box,
-  Divider,
   Chip,
-  List,
-  ListItem,
-  ListItemText,
 } from "@mui/material";
 import {
   CheckCircle,
@@ -17,7 +12,7 @@ import {
 } from "@mui/icons-material";
 
 const EmployeeProfile = ({ employee }) => {
-  const isDependent = !!employee.dependentId; // Check if the profile is for a dependent
+  const isDependent = !!employee.dependentId;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 4 }}>

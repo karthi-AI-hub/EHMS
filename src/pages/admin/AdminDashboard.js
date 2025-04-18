@@ -62,8 +62,6 @@ import {
     CheckCircle,
     Error as ErrorIcon,
     PersonAdd,
-    FilterAlt,
-    PauseCircle,
     SwapHoriz,
     Edit,
     LocalHospital,
@@ -252,16 +250,6 @@ const Dashboard = ({ roleFilter = null }) => {
     exit: { opacity: 0, scale: 0.95 }
   };
 
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.05
-      }
-    }
-  };
-
   // Handlers
   const handleSort = (key) => {
     let direction = "asc";
@@ -311,11 +299,6 @@ const Dashboard = ({ roleFilter = null }) => {
       // Single select
       setSelectedEmployees([employeeId]);
     }
-  };
-
-  const handleBulkAction = (action) => {
-    console.log(`Performing ${action} on selected employees:`, selectedEmployees);
-    // Implement bulk actions here
   };
 
   // Enhanced UI components

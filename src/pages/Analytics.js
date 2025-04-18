@@ -2,8 +2,8 @@ import React, { useEffect, useState } from "react";
 import { 
   Box, Typography, Grid, Card, CardContent, Divider, Paper,
   Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
-  Chip, LinearProgress, useTheme, Avatar, Stack, Tabs, Tab,
-  Badge, TextField, MenuItem, Select, FormControl, InputLabel,
+  Chip, useTheme, Avatar, Stack, Tabs, Tab,
+  MenuItem, Select, FormControl, InputLabel,
   Button, IconButton, Tooltip, Dialog, DialogTitle, DialogContent,
   DialogActions, useMediaQuery
 } from "@mui/material";
@@ -14,15 +14,12 @@ import {
   TimelineContent, TimelineDot, TimelineOppositeContent
 } from '@mui/lab';
 import { 
-  FilterList, Refresh, Today, DateRange, 
-  PieChart, BarChart, ShowChart, TableChart,
-  Person, Delete, CloudUpload, Description,
-  People, HourglassEmpty, AccessTime, CalendarToday
+  FilterList, Refresh, Today, 
+  PieChart, ShowChart, TableChart,
+  Person, Delete, Description,
+  People, AccessTime
 } from '@mui/icons-material';
-import { format, subDays, isToday, isThisWeek, isThisMonth } from 'date-fns';
-import { DatePicker } from '@mui/x-date-pickers/DatePicker';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { format } from 'date-fns';
 import LoadingScreen from "../components/common/LoadingScreen";
 
 const AnalyticsDashboard = () => {
@@ -35,10 +32,7 @@ const AnalyticsDashboard = () => {
     reportType: 'all',
     reportSubtype: 'all'
   });
-  const [dateRange, setDateRange] = useState({
-    start: subDays(new Date(), 7),
-    end: new Date()
-  });
+
   const [detailsDialog, setDetailsDialog] = useState({
     open: false,
     data: null
@@ -76,10 +70,6 @@ const AnalyticsDashboard = () => {
 
   const handleFilterChange = (field, value) => {
     setFilter(prev => ({ ...prev, [field]: value }));
-  };
-
-  const handleDateRangeChange = (field, date) => {
-    setDateRange(prev => ({ ...prev, [field]: date }));
   };
 
   const openDetailsDialog = (data) => {

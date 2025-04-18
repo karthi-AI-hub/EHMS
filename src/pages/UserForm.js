@@ -23,10 +23,6 @@ import {
   TableHead,
   TableRow,
   Chip,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
   Tooltip,
   Switch
 } from "@mui/material";
@@ -38,15 +34,10 @@ import {
   Work,
   Badge,
   Close,
-  CheckCircle,
   MedicalServices,
   Security,
-  Error as ErrorIcon,
   DriveFileRenameOutline,
-  PauseCircle,
-  SwapHoriz,
   Add,
-  Delete,
   Edit,
   FamilyRestroom
 } from "@mui/icons-material";
@@ -75,8 +66,6 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
     status: "active"
   });
   const [editMemberIndex, setEditMemberIndex] = useState(null);
-  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
-  const [memberToDelete, setMemberToDelete] = useState(null);
 
   // UI state
   const [submitting, setSubmitting] = useState(false);
