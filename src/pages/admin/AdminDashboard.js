@@ -156,7 +156,6 @@ const Dashboard = ({ roleFilter = null }) => {
         beneficiaries: activeEmployees + activeFamilyMembers, // Active employees + active family members
       };
 
-      console.log("Stats Data:", statsData); // Debugging: Log the calculated stats
       setStats(statsData);
 
       setEmployees(data);

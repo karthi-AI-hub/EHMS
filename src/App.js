@@ -1,10 +1,9 @@
-import React from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./context/AuthContext";
 import SplashScreen from "./pages/SplashScreen";
 import NotFound from "./pages/NotFound";
 import AuthLogin from "./pages/auth/AuthLogin";
-import EmployeeDashboard from "./pages/dashboard/EmployeeDashboard";
 import Profile from "./pages/Profile";
 import ChangePassword from "./pages/auth/ChangePassword";
 import ProtectedRoute from "./utils/ProtectedRoute";
@@ -17,7 +16,9 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import EmployeeReports from "./pages/EmployeeReports";
 import FileUploadPage from "./utils/FileUpload";
 import Analytics from "./pages/Analytics";
+
 function App() {
+
   return (
     <Router basename="/ehms">
       <AuthProvider>

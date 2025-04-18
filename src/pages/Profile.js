@@ -31,7 +31,6 @@ import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import { useAuth } from "../context/AuthContext";
-import socket from "../utils/socket";
 import LoadingScreen from "../components/common/LoadingScreen";
 
 const Profile = () => {
@@ -41,8 +40,6 @@ const Profile = () => {
   const [familyData, setFamilyData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [selectedFamilyMember, setSelectedFamilyMember] = useState(null);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -60,16 +57,6 @@ const Profile = () => {
     };
 
     fetchProfile();
-    socket.on("employeeUpdated", (updatedEmployee) => {
-      if (updatedEmployee.employeeId === user?.employeeId) {
-        setEmployeeData(updatedEmployee);
-        setFamilyData(updatedEmployee.family || []);
-      }
-    });
-
-    return () => {
-      socket.off("employeeUpdated"); // Clean up the listener
-    };
   }, [user?.employeeId]);
 
   if (loading) {

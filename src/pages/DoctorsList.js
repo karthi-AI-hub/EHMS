@@ -296,8 +296,7 @@ const DoctorsList = () => {
                       avatar={
                         <motion.div whileHover={{ scale: 1.05 }}>
                           <Avatar
-                            src={doctor.photoUrl || "/default-avatar-md.png"}
-                            alt={doctor.name}
+                            src={doctor.name}
                             sx={{ 
                               width: 60, 
                               height: 60,
@@ -432,8 +431,7 @@ const DoctorsList = () => {
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                 <Box sx={{ display: 'flex', gap: 3, alignItems: 'center' }}>
                   <Avatar
-                    src={selectedDoctor?.photoUrl || "/default-avatar-md.png"}
-                    alt={selectedDoctor?.name}
+                    src={selectedDoctor?.name}
                     sx={{ 
                       width: 100, 
                       height: 100,

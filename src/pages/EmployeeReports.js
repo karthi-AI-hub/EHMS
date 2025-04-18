@@ -166,16 +166,12 @@ const EmployeeReports = () => {
 
   const checkFamilyMemberAccess = async (requestedId, currentUserId) => {
     try {
-      console.log(
-        `Checking access for ${currentUserId} to ${requestedId}'s reports`
-      );
       const response = await api.get(`/checkAccess`, {
         params: {
           employee_id: currentUserId,
           dependent_id: requestedId,
         },
       });
-      console.log("Access check response:", response.data);
       return response.data.isFamilyMember;
     } catch (error) {
       console.error("Error checking family member:", {
@@ -201,7 +197,6 @@ const EmployeeReports = () => {
           user.employeeId
         );
         if (!isFamilyMember) {
-          console.log(`Redirecting to own reports (${user.employeeId})`);
           navigate(`/employee/reports/${user.employeeId}`, { replace: true });
           return false;
         }
