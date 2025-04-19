@@ -245,12 +245,14 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
   };
 
   const relationLabels = {
-    HUSBAND: "Husband",
-    WIFE: "Wife",
     SON: "Son",
     DAUGHTER: "Daughter",
+    WIFE: "Wife",
+    HUSBAND: "Husband",
     MOTHER: "Mother",
     FATHER: "Father",
+    SISTER: "Sister",
+    BROTHER: "Brother",
     OTHER: "Other"
   };
 

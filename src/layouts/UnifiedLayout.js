@@ -43,7 +43,7 @@ const UnifiedLayout = () => {
             <Box sx={{ display: "flex", alignItems: "center" }}>
               <img src={logo} alt="SAIL Logo" style={{ width: 40, height: 40, marginRight: 10 }} />
               <Typography variant="h6" sx={{ fontWeight: "bold", color: "#ffffff" }}>
-                SAIL Health Portal
+                SAIL - SSP Health Portal
               </Typography>
             </Box>
 

@@ -86,6 +86,15 @@ const Profile = () => {
     navigate(`/employee/reports/${id}`);
   };
 
+  const relationOrder = [
+    "A",
+    "HB", "WF",
+    "SN", "DT",
+    "FT", "MT",
+    "BR", "SI",
+    "O",
+  ];
+
   // Map relation to abbreviations for tabs
   const getRelationAbbreviation = (relation) => {
     switch (relation.toLowerCase()) {
@@ -103,10 +112,22 @@ const Profile = () => {
         return "FT";
       case "mother":
         return "MT";
+      case "brother":
+        return "BR"
+      case "sister":
+        return "SI";
+      case"other":
+        return "O";
       default:
         return relation.slice(0, 2).toUpperCase();
     }
   };
+
+  const sortedFamilyData = [...familyData].sort((a, b) => {
+    const aIndex = relationOrder.indexOf(getRelationAbbreviation(a.relation));
+    const bIndex = relationOrder.indexOf(getRelationAbbreviation(b.relation));
+    return aIndex - bIndex;
+  });
 
   return (
     <Box sx={{ maxWidth: "100%", p: 3 }}>
@@ -161,7 +182,7 @@ const Profile = () => {
             "&:hover": { color: "#1976d2", transform: "scale(1.1)" },
           }}
         />
-        {familyData.map((member) => (
+        {sortedFamilyData.map((member) => (
           <Tab
             key={member.dependentId}
             label={

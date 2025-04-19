@@ -104,6 +104,7 @@ const EmployeeDirectory = () => {
   const [selectedEmployeeId, setSelectedEmployeeId] = useState(null);
   const [loadingAllergies, setLoadingAllergies] = useState(false);
   const [loadingConditions, setLoadingConditions] = useState(false);
+  const [loadingClinicNotes, setLoadingClinicNotes] = useState(false);
   const [loadingEmployees, setLoadingEmployees] = useState(true);
 
   const theme = useTheme();
@@ -137,21 +138,26 @@ const EmployeeDirectory = () => {
       const employeeData = await Promise.all(
         employees.map(async (employee) => {
           try {
-            const [latestAllergyResponse, latestConditionResponse] = await Promise.all([
+            console.log("fETCHING DATA FOR EMPLOYEE : ", employee.employeeId)
+            const [latestAllergyResponse, latestConditionResponse, latestNotesResponse] = await Promise.all([
               api.get(`/allergies/latest/${employee.employeeId}`),
               api.get(`/conditions/latest/${employee.employeeId}`),
+              api.get(`/clinic/latest/${employee.employeeId}`),
             ]);
             return {
               ...employee,
-              latestAllergy: latestAllergyResponse.data?.allergy_name || "-",
-              latestCondition: latestConditionResponse.data?.condition_name || "-",
+              latestAllergy: latestAllergyResponse.data?.allergy_name || " -",
+              latestCondition: latestConditionResponse.data?.condition_name || " -",
+              latestNote: latestNotesResponse.data?.notes_name || " -",
+
             };
           } catch (error) {
-            console.error(`Error fetching allergy/condition for employee ${employee.id}:`, error);
+            console.error(`Error fetching allergy, condition or clinic notes for employee ${employee.id}:`, error);
             return {
               ...employee,
-              latestAllergy: "No allergies",
-              latestCondition: "No Chronic",
+              latestAllergy: "No Allergies",
+              latestCondition: "No Chronic illness",
+              latestNote: "No Clicin Notes"
             };
           }
         })
@@ -259,16 +265,20 @@ const EmployeeDirectory = () => {
     setSelectedEmployeeId(employeeId);
     setLoadingAllergies(true);
     setLoadingConditions(true);
+    setLoadingClinicNotes(true);
 
     try {
-      const [allergyHistory, conditionHistory] = await Promise.all([
+      const [allergyHistory, conditionHistory, notesHistory] = await Promise.all([
         api.get(`/allergies/${employeeId}`),
         api.get(`/conditions/${employeeId}`),
+        api.get(`/clinic/${employeeId}`),
       ]);
 
       setHistory({
         allergies: allergyHistory.data,
         conditions: conditionHistory.data,
+        clinicNotes: notesHistory.data,
+
       });
     } catch (error) {
       console.error("Error fetching history:", error);
@@ -276,6 +286,7 @@ const EmployeeDirectory = () => {
     } finally {
       setLoadingAllergies(false);
       setLoadingConditions(false);
+      setLoadingClinicNotes(false);
     }
   };
 
@@ -287,21 +298,21 @@ const EmployeeDirectory = () => {
   };
 
   const handleAddEntry = async () => {
-    const endpoint = activeTab === 0 ? "/allergies" : "/conditions";
+    const endpoint = activeTab === 0 ? "/allergies" : activeTab === 1 ? "/conditions" : "/clinic";
     const payload = {
       employeeId: selectedEmployeeId,
-      [`${activeTab === 0 ? "allergy_name" : "condition_name"}`]: newEntry,
+      [`${activeTab === 0 ? "allergy_name" : activeTab === 1 ? "condition_name" : "notes_name"}`]: newEntry,
     };
 
     await api.post(endpoint, payload);
 
     // Refresh history
     const updatedHistory = await api.get(
-      `/${activeTab === 0 ? "allergies" : "conditions"}/${selectedEmployeeId}`
+      `/${activeTab === 0 ? "allergies" : activeTab === 1 ? "conditions" : "clinic"}/${selectedEmployeeId}`
     );
     setHistory((prev) => ({
       ...prev,
-      [activeTab === 0 ? "allergies" : "conditions"]: updatedHistory.data,
+      [activeTab === 0 ? "allergies" : activeTab === 1 ? "conditions" : "clinicNotes"]: updatedHistory.data,
     }));
 
     setNewEntry("");
@@ -344,15 +355,11 @@ const EmployeeDirectory = () => {
   }, [filteredEmployees, page, rowsPerPage]);
 
   const getStatusIcon = (status) => {
-    switch (status) {
+    switch (status.toLowerCase) {
       case "active":
         return <CheckCircle fontSize="small" />;
       case "inactive":
         return <Info fontSize="small" />;
-      case "onleave":
-        return <PauseCircle fontSize="small" />;
-      case "transferred":
-        return <SwapHoriz fontSize="small" />;
       default:
         return <Info fontSize="small" />;
     }
@@ -365,7 +372,7 @@ const EmployeeDirectory = () => {
   }, [employees]);
 
   const sortedHistory = useMemo(() => {
-    const currentHistory = history[activeTab === 0 ? "allergies" : "conditions"] || [];
+    const currentHistory = history[activeTab === 0 ? "allergies" : activeTab === 1 ? "conditions" : "clinicNotes"] || [];
     return currentHistory.slice().sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
   }, [history, activeTab]);
 
@@ -491,7 +498,8 @@ const EmployeeDirectory = () => {
                   {["DOCTOR", "ADMIN"].includes(user.role) && (
                     <>
                       <TableCell width="15%">ALLERGY</TableCell>
-                      <TableCell width="15%">CHRONIC</TableCell>
+                      <TableCell width="15%">CHRONIC ILLNESS</TableCell>
+                      <TableCell width="15%">CLINIC NOTES</TableCell>
                     </>
                   )}
                   <TableCell width="15%" align="end">
@@ -540,10 +548,6 @@ const EmployeeDirectory = () => {
                               ? "success"
                               : emp.status === "inactive"
                               ? "error"
-                              : emp.status === "on_leave"
-                              ? "warning"
-                              : emp.status === "transferred"
-                              ? "secondary"
                               : "primary"
                           }
                           variant="outlined"
@@ -563,6 +567,13 @@ const EmployeeDirectory = () => {
                               variant="body2"
                              >
                               {emp.latestCondition || "No Chronnic"}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              variant="body2"
+                            >
+                              {emp.latestNote || "No Clinic notes"}
                             </Typography>
                           </TableCell>
                         </>
@@ -682,6 +693,13 @@ const EmployeeDirectory = () => {
                               variant="body2"
                              >
                               {member.latestCondition || " -"}
+                            </Typography>
+                          </TableCell>
+                          <TableCell>
+                            <Typography
+                              variant="body2"
+                            >
+                              {member.latestNote || " -"}
                             </Typography>
                           </TableCell>
                            </>
@@ -979,7 +997,7 @@ const EmployeeDirectory = () => {
   <DialogTitle>
     <Box display="flex" justifyContent="space-between" alignItems="center">
       <Typography variant="h6">
-        {activeTab === 0 ? "Allergy" : "Chronic illness"} Management
+        {activeTab === 0 ? "Allergy" : activeTab === 1 ? "Chronic illness" : "Clinic Notes"} Management
       </Typography>
       <IconButton onClick={handleCloseDialog}>
         <Close />
@@ -994,11 +1012,12 @@ const EmployeeDirectory = () => {
     >
       <Tab label="Allergies" />
       <Tab label="Chronic illness" />
+      <Tab label="Clinic Notes" />
     </Tabs>
     
     <Box mb={3}>
       <Typography variant="subtitle1" gutterBottom>
-        Add New {activeTab === 0 ? "Allergy" : "Chronic illness"}
+        Add New {activeTab === 0 ? "Allergy" : activeTab === 1 ? "Chronic illness" : "Clinic Notes"}
       </Typography>
       <Box display="flex" gap={2}>
         <TextField
@@ -1007,7 +1026,7 @@ const EmployeeDirectory = () => {
           size="small"
           value={newEntry}
           onChange={(e) => setNewEntry(e.target.value)}
-          placeholder={`Enter ${activeTab === 0 ? "allergy" : "Chronic illness"} name`}
+          placeholder={`Enter ${activeTab === 0 ? "allergy" : activeTab ===1 ? "Chronic illness" : "notes"} name`}
         />
         <Button
           variant="contained"
@@ -1023,7 +1042,7 @@ const EmployeeDirectory = () => {
     <Divider sx={{ my: 2 }} />
     
     <Typography variant="subtitle1" gutterBottom>
-      {activeTab === 0 ? "Allergy" : "Chronic illness"} History
+      {activeTab === 0 ? "Allergy" : activeTab === 1 ? "Chronic illness" : "Clinic notes"} History
     </Typography>
     
     {loadingAllergies && activeTab === 0 ? (
@@ -1043,7 +1062,7 @@ const EmployeeDirectory = () => {
           {sortedHistory.map((item, index) => (
             <TableRow key={item.id}>
               <TableCell>
-                {item[activeTab === 0 ? "allergy_name" : "condition_name"]}
+                {item[activeTab === 0 ? "allergy_name" : activeTab === 1 ? "condition_name" : "notes_name"]}
                 {index === 0 && (
                   <Chip
                     label="Latest"
