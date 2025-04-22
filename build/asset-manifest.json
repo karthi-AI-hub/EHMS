@@ -1,16 +1,16 @@
 {
   "files": {
     "main.css": "/ehms/static/css/main.fbf4a4a8.css",
-    "main.js": "/ehms/static/js/main.37e7bd5f.js",
+    "main.js": "/ehms/static/js/main.39f366ba.js",
     "static/js/453.8ab44547.chunk.js": "/ehms/static/js/453.8ab44547.chunk.js",
     "static/media/logo.png": "/ehms/static/media/logo.8b23f0820063d08c8074.png",
     "index.html": "/ehms/index.html",
     "main.fbf4a4a8.css.map": "/ehms/static/css/main.fbf4a4a8.css.map",
-    "main.37e7bd5f.js.map": "/ehms/static/js/main.37e7bd5f.js.map",
+    "main.39f366ba.js.map": "/ehms/static/js/main.39f366ba.js.map",
     "453.8ab44547.chunk.js.map": "/ehms/static/js/453.8ab44547.chunk.js.map"
   },
   "entrypoints": [
     "static/css/main.fbf4a4a8.css",
-    "static/js/main.37e7bd5f.js"
+    "static/js/main.39f366ba.js"
   ]
 }

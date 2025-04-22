@@ -46,8 +46,7 @@ import {
   CheckCircle,
   Info,
   Refresh,
-  PauseCircle,
-  SwapHoriz,
+
 } from "@mui/icons-material";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
@@ -106,6 +105,7 @@ const EmployeeDirectory = () => {
   const [loadingConditions, setLoadingConditions] = useState(false);
   const [loadingClinicNotes, setLoadingClinicNotes] = useState(false);
   const [loadingEmployees, setLoadingEmployees] = useState(true);
+  const [isAdding, setIsAdding] = useState(false); // Add a state to track the loading state
 
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
@@ -135,175 +135,182 @@ const EmployeeDirectory = () => {
       const response = await api.get("/allemployees");
       const employees = response.data;
 
-      const employeeData = await Promise.all(
-        employees.map(async (employee) => {
+      const batchSize = 50;
+      const employeeData = [];
+      for (let i = 0; i < employees.length; i += batchSize) {
+        const batch = employees.slice(i, i + batchSize);
+        const batchResult = await Promise.all(
+          batch.map(async (employee) => {
           try {
-            console.log("fETCHING DATA FOR EMPLOYEE : ", employee.employeeId)
-            const [latestAllergyResponse, latestConditionResponse, latestNotesResponse] = await Promise.all([
-              api.get(`/allergies/latest/${employee.employeeId}`),
-              api.get(`/conditions/latest/${employee.employeeId}`),
-              api.get(`/clinic/latest/${employee.employeeId}`),
-            ]);
-            return {
-              ...employee,
-              latestAllergy: latestAllergyResponse.data?.allergy_name || " -",
-              latestCondition: latestConditionResponse.data?.condition_name || " -",
-              latestNote: latestNotesResponse.data?.notes_name || " -",
+          const [latestAllergyResponse, latestConditionResponse, latestNotesResponse] = await Promise.all([
+            api.get(`/allergies/latest/${employee.employeeId}`),
+            api.get(`/conditions/latest/${employee.employeeId}`),
+            api.get(`/clinic/latest/${employee.employeeId}`),
+          ]);
+          return {
+            ...employee,
+            latestAllergy: latestAllergyResponse.data?.allergy_name || " -",
+            latestCondition: latestConditionResponse.data?.condition_name || " -",
+            latestNote: latestNotesResponse.data?.notes_name || " -",
 
-            };
-          } catch (error) {
-            console.error(`Error fetching allergy, condition or clinic notes for employee ${employee.id}:`, error);
-            return {
-              ...employee,
-              latestAllergy: "No Allergies",
-              latestCondition: "No Chronic illness",
-              latestNote: "No Clicin Notes"
-            };
-          }
-        })
+          };
+        } catch (error) {
+          console.error(`Error fetching allergy, condition or clinic notes for employee ${employee.id}:`, error);
+          return {
+            ...employee,
+            latestAllergy: " -",
+            latestCondition: " -",
+            latestNote: " -"
+          };
+        }
+      })
       );
+    employeeData.push(...batchResult);
+    };
 
-      setEmployees(employeeData);
-      setFilteredEmployees(employeeData);
+setEmployees(employeeData);
+setFilteredEmployees(employeeData);
     } catch (error) {
-      console.error("Error fetching employees:", error);
-      setError("Failed to fetch employees. Please try again.");
-    } finally {
-      setLoadingEmployees(false);
-    }
+  console.error("Error fetching employees:", error);
+  setError("Failed to fetch employees. Please try again.");
+} finally {
+  setLoadingEmployees(false);
+}
   };
 
-  // const fetchConditions = async (employeeId) => {
-  //   try {
-  //     const response = await api.get(`/conditions/${employeeId}`);
-  //     return response.data;
-  //   } catch (error) {
-  //     console.error("Error fetching conditions:", error);
-  //     return [];
-  //   }
-  // };
+// const fetchConditions = async (employeeId) => {
+//   try {
+//     const response = await api.get(`/conditions/${employeeId}`);
+//     return response.data;
+//   } catch (error) {
+//     console.error("Error fetching conditions:", error);
+//     return [];
+//   }
+// };
 
-  // const fetchAllergies = async (employeeId) => {
-  //   try {
-  //     const response = await api.get(`/allergies/${employeeId}`);
-  //     return response.data;
-  //   } catch (error) {
-  //     console.error("Error fetching allergies:", error);
-  //     return [];
-  //   }
-  // };
+// const fetchAllergies = async (employeeId) => {
+//   try {
+//     const response = await api.get(`/allergies/${employeeId}`);
+//     return response.data;
+//   } catch (error) {
+//     console.error("Error fetching allergies:", error);
+//     return [];
+//   }
+// };
 
-  const handleSearch = (e) => {
-    const query = e.target.value.toLowerCase();
-    setSearchQuery(query);
+const handleSearch = (e) => {
+  const query = e.target.value.toLowerCase();
+  setSearchQuery(query);
 
-    if (employees) {
-      const filtered = employees.filter(
-
-
-        
-        (emp) =>
-          emp.name.toLowerCase().includes(query) ||
-          emp.employeeId.toLowerCase().includes(query) || 
-          emp.department.toLowerCase().includes(query) ||
-          (emp.family &&
-            emp.family.some((member) =>
-              member.name.toLowerCase().includes(query)
-            ))
-      );
-      setFilteredEmployees(filtered);
-      setPage(0);
-    }
-  };
-
-  const handleSort = (key) => {
-    const direction =
-      sortConfig.key === key && sortConfig.direction === "asc" ? "desc" : "asc";
-    setSortConfig({ key, direction });
-
-    const sortedData = [...filteredEmployees].sort((a, b) => {
-      if (a[key] < b[key]) return direction === "asc" ? -1 : 1;
-      if (a[key] > b[key]) return direction === "asc" ? 1 : -1;
-      return 0;
-    });
-
-    setFilteredEmployees(sortedData);
-  };
+  if (employees) {
+    const filtered = employees.filter(
 
 
-  const handleChangeRowsPerPage = (event) => {
-    setRowsPerPage(parseInt(event.target.value, 10));
+
+      (emp) =>
+        emp.name.toLowerCase().includes(query) ||
+        emp.employeeId.toLowerCase().includes(query) ||
+        emp.department.toLowerCase().includes(query) ||
+        (emp.family &&
+          emp.family.some((member) =>
+            member.name.toLowerCase().includes(query)
+          ))
+    );
+    setFilteredEmployees(filtered);
     setPage(0);
+  }
+};
+
+const handleSort = (key) => {
+  const direction =
+    sortConfig.key === key && sortConfig.direction === "asc" ? "desc" : "asc";
+  setSortConfig({ key, direction });
+
+  const sortedData = [...filteredEmployees].sort((a, b) => {
+    if (a[key] < b[key]) return direction === "asc" ? -1 : 1;
+    if (a[key] > b[key]) return direction === "asc" ? 1 : -1;
+    return 0;
+  });
+
+  setFilteredEmployees(sortedData);
+};
+
+
+const handleChangeRowsPerPage = (event) => {
+  setRowsPerPage(parseInt(event.target.value, 10));
+  setPage(0);
+};
+
+const handleViewReports = (id) => {
+  const roleToRouteMap = {
+    TECHNICIAN: "technician",
+    DOCTOR: "doctor",
+    ADMIN: "admin",
+    EMPLOYEE: "employee",
+  };
+  navigate(`/${roleToRouteMap[user.role] || "employee"}/reports/${id}`);
+};
+
+const handleViewDetails = async (id) => {
+  setProfileLoading(true); // Show loading spinner while fetching data
+  try {
+    const response = await api.get(`/employee/${id}`); // Fetch employee or dependent details
+    setSelectedEmployee(response.data); // Set the fetched data to the state
+    setDetailDialogOpen(true); // Open the dialog
+  } catch (error) {
+    console.error("Error fetching details:", error);
+    setError("Failed to load profile details. Please try again.");
+  } finally {
+    setProfileLoading(false); // Hide loading spinner
+  }
+};
+
+const handleOpenDialog = async (employeeId) => {
+  setDialogOpen(true);
+  setSelectedEmployeeId(employeeId);
+  setLoadingAllergies(true);
+  setLoadingConditions(true);
+  setLoadingClinicNotes(true);
+
+  try {
+    const [allergyHistory, conditionHistory, notesHistory] = await Promise.all([
+      api.get(`/allergies/${employeeId}`),
+      api.get(`/conditions/${employeeId}`),
+      api.get(`/clinic/${employeeId}`),
+    ]);
+
+    setHistory({
+      allergies: allergyHistory.data,
+      conditions: conditionHistory.data,
+      clinicNotes: notesHistory.data,
+
+    });
+  } catch (error) {
+    console.error("Error fetching history:", error);
+    setError("Failed to fetch history. Please try again.");
+  } finally {
+    setLoadingAllergies(false);
+    setLoadingConditions(false);
+    setLoadingClinicNotes(false);
+  }
+};
+
+const handleCloseDialog = () => {
+  setDialogOpen(false);
+  fetchAllEmployees();
+  setHistory([]);
+  setNewEntry("");
+};
+
+const handleAddEntry = async () => {
+  setIsAdding(true); // Disable the button
+  const endpoint = activeTab === 0 ? "/allergies" : activeTab === 1 ? "/conditions" : "/clinic";
+  const payload = {
+    employeeId: selectedEmployeeId,
+    [`${activeTab === 0 ? "allergy_name" : activeTab === 1 ? "condition_name" : "notes_name"}`]: newEntry,
   };
 
-  const handleViewReports = (id) => {
-    const roleToRouteMap = {
-      TECHNICIAN: "technician",
-      DOCTOR: "doctor",
-      ADMIN: "admin",
-      EMPLOYEE: "employee",
-    };
-    navigate(`/${roleToRouteMap[user.role] || "employee"}/reports/${id}`);
-  };
-
-  const handleViewDetails = async (id) => {
-    setProfileLoading(true); // Show loading spinner while fetching data
-    try {
-      const response = await api.get(`/employee/${id}`); // Fetch employee or dependent details
-      setSelectedEmployee(response.data); // Set the fetched data to the state
-      setDetailDialogOpen(true); // Open the dialog
-    } catch (error) {
-      console.error("Error fetching details:", error);
-      setError("Failed to load profile details. Please try again.");
-    } finally {
-      setProfileLoading(false); // Hide loading spinner
-    }
-  };
-
-  const handleOpenDialog = async (employeeId) => {
-    setDialogOpen(true);
-    setSelectedEmployeeId(employeeId);
-    setLoadingAllergies(true);
-    setLoadingConditions(true);
-    setLoadingClinicNotes(true);
-
-    try {
-      const [allergyHistory, conditionHistory, notesHistory] = await Promise.all([
-        api.get(`/allergies/${employeeId}`),
-        api.get(`/conditions/${employeeId}`),
-        api.get(`/clinic/${employeeId}`),
-      ]);
-
-      setHistory({
-        allergies: allergyHistory.data,
-        conditions: conditionHistory.data,
-        clinicNotes: notesHistory.data,
-
-      });
-    } catch (error) {
-      console.error("Error fetching history:", error);
-      setError("Failed to fetch history. Please try again.");
-    } finally {
-      setLoadingAllergies(false);
-      setLoadingConditions(false);
-      setLoadingClinicNotes(false);
-    }
-  };
-
-  const handleCloseDialog = () => {
-    setDialogOpen(false);
-    fetchAllEmployees();
-    setHistory([]);
-    setNewEntry("");
-  };
-
-  const handleAddEntry = async () => {
-    const endpoint = activeTab === 0 ? "/allergies" : activeTab === 1 ? "/conditions" : "/clinic";
-    const payload = {
-      employeeId: selectedEmployeeId,
-      [`${activeTab === 0 ? "allergy_name" : activeTab === 1 ? "condition_name" : "notes_name"}`]: newEntry,
-    };
-
+  try {
     await api.post(endpoint, payload);
 
     // Refresh history
@@ -316,780 +323,789 @@ const EmployeeDirectory = () => {
     }));
 
     setNewEntry("");
-  };
-
-  const applyFilters = () => {
-    let filtered = [...employees];
-
-    if (selectedFilters.department.length > 0) {
-      filtered = filtered.filter((emp) =>
-        selectedFilters.department.includes(emp.department)
-      );
-    }
-
-    if (selectedFilters.status.length > 0) {
-      filtered = filtered.filter((emp) =>
-        selectedFilters.status.includes(emp.status)
-      );
-    }
-
-    setFilteredEmployees(filtered);
-    setPage(0);
-    setFilterDialogOpen(false);
-  };
-
-  const clearFilters = () => {
-    setSelectedFilters({
-      department: [],
-      status: [],
-    });
-    setFilteredEmployees(employees);
-    setFilterDialogOpen(false);
-  };
-
-  const paginatedEmployees = useMemo(() => {
-    return filteredEmployees.slice(
-      page * rowsPerPage,
-      page * rowsPerPage + rowsPerPage
-    );
-  }, [filteredEmployees, page, rowsPerPage]);
-
-  const getStatusIcon = (status) => {
-    switch (status.toLowerCase) {
-      case "active":
-        return <CheckCircle fontSize="small" />;
-      case "inactive":
-        return <Info fontSize="small" />;
-      default:
-        return <Info fontSize="small" />;
-    }
-  };
-
-  const departments = useMemo(() => {
-    const depts = new Set();
-    employees.forEach((emp) => depts.add(emp.department));
-    return Array.from(depts).sort();
-  }, [employees]);
-
-  const sortedHistory = useMemo(() => {
-    const currentHistory = history[activeTab === 0 ? "allergies" : activeTab === 1 ? "conditions" : "clinicNotes"] || [];
-    return currentHistory.slice().sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
-  }, [history, activeTab]);
-
-  return (
-    <motion.div
-      className="container"
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-    >
-      <Box className="header-container">
-        <Typography variant="h4" className="header" gutterBottom>
-          Employee Directory
-        </Typography>
-        <Typography variant="subtitle1" className="subheader">
-          Manage and view employee health records
-        </Typography>
-      </Box>
-
-      <Box className="controls-container">
-        <Box className="search-filter-container">
-          <TextField
-            label="Search employees or dependents..."
-            variant="outlined"
-            fullWidth
-            value={searchQuery}
-            onChange={handleSearch}
-            className="search-input"
-            InputProps={{
-              startAdornment: <Search color="action" sx={{ mr: 1 }} />,
-            }}
-          />
-          <Tooltip title="Advanced filters">
-            <IconButton
-              className="filter-button"
-              onClick={() => setFilterDialogOpen(true)}
-            >
-              <FilterList />
-            </IconButton>
-          </Tooltip>
-        </Box>
-      </Box>
-
-      {error && (
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-        >
-          <Alert
-            severity="error"
-            icon={<ErrorOutline fontSize="inherit" />}
-            action={
-              <IconButton
-                aria-label="close"
-                color="inherit"
-                size="small"
-                onClick={() => setError("")}
-              >
-                <Close fontSize="inherit" />
-              </IconButton>
-            }
-            sx={{ mb: 2 }}
-          >
-            {error}
-          </Alert>
-        </motion.div>
-      )}
-
-      {loadingEmployees ? (
-        <LoadingScreen message="Fetching employee data..." />
-      ) : filteredEmployees.length > 0 ? (
-        <>
-          <TableContainer
-            component={Paper}
-            className="table-container"
-            elevation={2}
-            sx={{ maxHeight: "calc(100vh - 300px)",
-              "& .MuiTableCell-root": {
-    padding: "12px 16px",
-    "&:first-of-type": {
-      pl: 3
-    },
-    "&:last-child": {
-      pr: 3
-    }
+  } catch (error) {
+    console.error("Error adding entry:", error);
+    setError("Failed to add entry. Please try again.");
+  } finally {
+    setIsAdding(false); // Re-enable the button
   }
-             }}
+};
+
+const applyFilters = () => {
+  let filtered = [...employees];
+
+  if (selectedFilters.department.length > 0) {
+    filtered = filtered.filter((emp) =>
+      selectedFilters.department.includes(emp.department)
+    );
+  }
+
+  if (selectedFilters.status.length > 0) {
+    filtered = filtered.filter((emp) =>
+      selectedFilters.status.includes(emp.status)
+    );
+  }
+
+  setFilteredEmployees(filtered);
+  setPage(0);
+  setFilterDialogOpen(false);
+};
+
+const clearFilters = () => {
+  setSelectedFilters({
+    department: [],
+    status: [],
+  });
+  setFilteredEmployees(employees);
+  setFilterDialogOpen(false);
+};
+
+const paginatedEmployees = useMemo(() => {
+  return filteredEmployees.slice(
+    page * rowsPerPage,
+    page * rowsPerPage + rowsPerPage
+  );
+}, [filteredEmployees, page, rowsPerPage]);
+
+const getStatusIcon = (status) => {
+  switch (status.toLowerCase) {
+    case "active":
+      return <CheckCircle fontSize="small" />;
+    case "inactive":
+      return <Info fontSize="small" />;
+    default:
+      return <Info fontSize="small" />;
+  }
+};
+
+const departments = useMemo(() => {
+  const depts = new Set();
+  employees.forEach((emp) => depts.add(emp.department));
+  return Array.from(depts).sort();
+}, [employees]);
+
+const sortedHistory = useMemo(() => {
+  const currentHistory = history[activeTab === 0 ? "allergies" : activeTab === 1 ? "conditions" : "clinicNotes"] || [];
+  return currentHistory.slice().sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at));
+}, [history, activeTab]);
+
+return (
+  <motion.div
+    className="container"
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 0.5 }}
+  >
+    <Box className="header-container">
+      <Typography variant="h4" className="header" gutterBottom>
+        Employee Directory
+      </Typography>
+      <Typography variant="subtitle1" className="subheader">
+        Manage and view employee health records
+      </Typography>
+    </Box>
+
+    <Box className="controls-container">
+      <Box className="search-filter-container">
+        <TextField
+          label="Search employees or dependents..."
+          variant="outlined"
+          fullWidth
+          value={searchQuery}
+          onChange={handleSearch}
+          className="search-input"
+          InputProps={{
+            startAdornment: <Search color="action" sx={{ mr: 1 }} />,
+          }}
+        />
+        <Tooltip title="Advanced filters">
+          <IconButton
+            className="filter-button"
+            onClick={() => setFilterDialogOpen(true)}
           >
-            <Table
-              stickyHeader
-              sx={{ minWidth: 650 }}
-              aria-label="employee directory table"
+            <FilterList />
+          </IconButton>
+        </Tooltip>
+      </Box>
+    </Box>
+
+    {error && (
+      <motion.div
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+      >
+        <Alert
+          severity="error"
+          icon={<ErrorOutline fontSize="inherit" />}
+          action={
+            <IconButton
+              aria-label="close"
+              color="inherit"
+              size="small"
+              onClick={() => setError("")}
             >
-              <TableHead className="table-header">
-                <TableRow>
-                  <TableCell width="10%">
-                    <TableSortLabel
-                      active={sortConfig.key === "employeeId"}
-                      direction={sortConfig.direction}
-                      onClick={() => handleSort("employeeId")}
-                    >
-                      EMPLOYEE ID
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell width="20%">
-                    <TableSortLabel
-                      active={sortConfig.key === "name"}
-                      direction={sortConfig.direction}
-                      onClick={() => handleSort("name")}
-                    >
-                      NAME
-                    </TableSortLabel>
-                  </TableCell>
-                  <TableCell width="15%">
-                    <TableSortLabel
-                      active={sortConfig.key === "status"}
-                      direction={sortConfig.direction}
-                      onClick={() => handleSort("status")}
-                    >
-                      STATUS
-                    </TableSortLabel>
-                  </TableCell>
-                  {["DOCTOR", "ADMIN"].includes(user.role) && (
-                    <>
-                      <TableCell width="15%">ALLERGY</TableCell>
-                      <TableCell width="15%">CHRONIC ILLNESS</TableCell>
-                      <TableCell width="15%">CLINIC NOTES</TableCell>
-                    </>
-                  )}
-                  <TableCell width="15%" align="end">
-                    ACTIONS
-                  </TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {paginatedEmployees.map((emp) => (
-                  <React.Fragment key={emp.employeeId}>
-                    <StyledTableRow>
-                      <TableCell>
-                        <Box
+              <Close fontSize="inherit" />
+            </IconButton>
+          }
+          sx={{ mb: 2 }}
+        >
+          {error}
+        </Alert>
+      </motion.div>
+    )}
+
+    {loadingEmployees ? (
+      <LoadingScreen message="Fetching employee data..." />
+    ) : filteredEmployees.length > 0 ? (
+      <>
+        <TableContainer
+          component={Paper}
+          className="table-container"
+          elevation={2}
+          sx={{
+            maxHeight: "calc(100vh - 300px)",
+            "& .MuiTableCell-root": {
+              padding: "12px 16px",
+              "&:first-of-type": {
+                pl: 3
+              },
+              "&:last-child": {
+                pr: 3
+              }
+            }
+          }}
+        >
+          <Table
+            stickyHeader
+            sx={{ minWidth: 650 }}
+            aria-label="employee directory table"
+          >
+            <TableHead className="table-header">
+              <TableRow>
+                <TableCell width="10%">
+                  <TableSortLabel
+                    active={sortConfig.key === "employeeId"}
+                    direction={sortConfig.direction}
+                    onClick={() => handleSort("employeeId")}
+                  >
+                    EMPLOYEE ID
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell width="20%">
+                  <TableSortLabel
+                    active={sortConfig.key === "name"}
+                    direction={sortConfig.direction}
+                    onClick={() => handleSort("name")}
+                  >
+                    NAME
+                  </TableSortLabel>
+                </TableCell>
+                <TableCell width="15%">
+                  <TableSortLabel
+                    active={sortConfig.key === "status"}
+                    direction={sortConfig.direction}
+                    onClick={() => handleSort("status")}
+                  >
+                    STATUS
+                  </TableSortLabel>
+                </TableCell>
+                {["DOCTOR", "ADMIN"].includes(user.role) && (
+                  <>
+                    <TableCell width="15%">ALLERGY</TableCell>
+                    <TableCell width="15%">CHRONIC ILLNESS</TableCell>
+                    <TableCell width="15%">CLINIC NOTES</TableCell>
+                  </>
+                )}
+                <TableCell width="15%" align="end">
+                  ACTIONS
+                </TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {paginatedEmployees.map((emp) => (
+                <React.Fragment key={emp.employeeId}>
+                  <StyledTableRow>
+                    <TableCell>
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          cursor: "pointer",
+                        }}
+                        onClick={() => handleViewDetails(emp.employeeId)}
+                      >
+                        <Avatar
                           sx={{
-                            display: "flex",
-                            alignItems: "center",
-                            cursor: "pointer",
+                            width: 32,
+                            height: 32,
+                            mr: 1,
+                            bgcolor: "primary.main",
                           }}
-                          onClick={() => handleViewDetails(emp.employeeId)}
                         >
-                          <Avatar
-                            sx={{
-                              width: 32,
-                              height: 32,
-                              mr: 1,
-                              bgcolor: "primary.main",
-                            }}
-                          >
-                            {emp.name.charAt(0)}
-                          </Avatar>
-                          <Typography variant="body2" color="primary">
-                            {emp.employeeId}
-                          </Typography>
-                        </Box>
-                      </TableCell>
-                      <TableCell>
-                        <Typography fontWeight="500">{emp.name}</Typography>
-                      </TableCell>
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          icon={getStatusIcon(emp.status)}
-                          label={emp.status}
-                          color={
-                            emp.status === "active"
-                              ? "success"
-                              : emp.status === "inactive"
+                          {emp.name.charAt(0)}
+                        </Avatar>
+                        <Typography variant="body2" color="primary">
+                          {emp.employeeId}
+                        </Typography>
+                      </Box>
+                    </TableCell>
+                    <TableCell>
+                      <Typography fontWeight="500">{emp.name}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        icon={getStatusIcon(emp.status)}
+                        label={emp.status}
+                        color={
+                          emp.status === "active"
+                            ? "success"
+                            : emp.status === "inactive"
                               ? "error"
                               : "primary"
-                          }
-                          variant="outlined"
-                        />
-                      </TableCell>
-                      {["DOCTOR", "ADMIN"].includes(user.role) && (
-                        <>
-                          <TableCell>
-                            <Typography
-                              variant="body2"
-                            >
-                              {emp.latestAllergy || "No allergies"}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography
-                              variant="body2"
-                             >
-                              {emp.latestCondition || "No Chronnic"}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography
-                              variant="body2"
-                            >
-                              {emp.latestNote || "No Clinic notes"}
-                            </Typography>
-                          </TableCell>
-                        </>
-                      )}
-                      <TableCell align="center">
-                        <Box
-                          sx={{
-                            display: "flex",
-                            alignItems: "center", 
-                            justifyContent: "center",
-                            gap: 1,
-                          }}
-                        >
-                          {["DOCTOR", "ADMIN"].includes(user.role) && (
-                            <Tooltip title="Manage Allergy/Condition">
-                              <IconButton
-                                size="small"
-                                onClick={() => handleOpenDialog(emp.employeeId)}
-                                color="primary"
-                              >
-                                <MedicalInformation fontSize="small" />
-                              </IconButton>
-                            </Tooltip>
-                          )}
-                          <Tooltip title="View details">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleViewDetails(emp.employeeId)}
-                              color="primary"
-                            >
-                              <Person fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                          <Tooltip title="View reports">
-                            <IconButton
-                              size="small"
-                              onClick={() => handleViewReports(emp.employeeId)}
-                              color="secondary"
-                            >
-                              <Description fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        </Box>
-                      </TableCell>
-                    </StyledTableRow>
-
-                    {emp.family?.length > 0 &&
-                      emp.family.map((member) => (
-                        <DependentTableRow key={member.dependentId}>
-                          <TableCell>
-                            <Box
-                              sx={{
-                                display: "flex",
-                                alignItems: "center",
-                                cursor: "pointer",
-                              }}
-                              onClick={() =>
-                                handleViewDetails(member.dependentId)
-                              }
-                            >
-                              <Avatar
-                                sx={{
-                                  width: 28,
-                                  height: 28,
-                                  mr: 1,
-                                  bgcolor: "secondary.main",
-                                }}
-                              >
-                                {member.name.charAt(0)}
-                              </Avatar>
-                              <Typography variant="body2" color="primary">
-                                {member.dependentId}
-                              </Typography>
-                            </Box>
-                          </TableCell>
-                          <TableCell>
-                            <Typography fontWeight="500">
-                              {member.name}
-                            </Typography>
-                            <Typography
-                              variant="caption"
-                              color="text.secondary"
-                            >
-                              {member.relation}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Chip
-                              size="small"
-                              icon={getStatusIcon(member.status)}
-                              label={member.status}
-                              color={
-                                member.status === "active"
-                                  ? "success"
-                                  : member.status === "inactive"
-                                  ? "error"
-                                  : member.status === "on_leave"
-                                  ? "warning"
-                                  : member.status === "transferred"
-                                  ? "secondary"
-                                  : "info"
-                              }
-                              variant="outlined"
-                            />
-                          </TableCell>
-                          {["DOCTOR", "ADMIN"].includes(user.role) && (
-                           <>
-                           <TableCell>
-                            <Typography
-                              variant="body2"
-                            >
-                              {member.latestAllergy || " -"}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography
-                              variant="body2"
-                             >
-                              {member.latestCondition || " -"}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography
-                              variant="body2"
-                            >
-                              {member.latestNote || " -"}
-                            </Typography>
-                          </TableCell>
-                           </>
-                          )}
-                          <TableCell align="center">
-                            <Box
-                              sx={{
-                                display: "flex",
-                                alignItems: "center", 
-                                justifyContent: "center",
-                                gap: 1, 
-                              }}
-                            >
-                            {["DOCTOR", "ADMIN"].includes(user.role) && (
+                        }
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    {["DOCTOR", "ADMIN"].includes(user.role) && (
+                      <>
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                          >
+                            {emp.latestAllergy || "No allergies"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                          >
+                            {emp.latestCondition || "No Chronnic"}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Typography
+                            variant="body2"
+                          >
+                            {emp.latestNote || "No Clinic notes"}
+                          </Typography>
+                        </TableCell>
+                      </>
+                    )}
+                    <TableCell align="center">
+                      <Box
+                        sx={{
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          gap: 1,
+                        }}
+                      >
+                        {["DOCTOR", "ADMIN"].includes(user.role) && (
                           <Tooltip title="Manage Allergy/Condition">
                             <IconButton
                               size="small"
-                              onClick={() => handleOpenDialog(member.dependentId)}
+                              onClick={() => handleOpenDialog(emp.employeeId)}
                               color="primary"
                             >
                               <MedicalInformation fontSize="small" />
                             </IconButton>
                           </Tooltip>
-                          )}
-                              <Tooltip title="View Profile">
+                        )}
+                        <Tooltip title="View details">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleViewDetails(emp.employeeId)}
+                            color="primary"
+                          >
+                            <Person fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="View reports">
+                          <IconButton
+                            size="small"
+                            onClick={() => handleViewReports(emp.employeeId)}
+                            color="secondary"
+                          >
+                            <Description fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Box>
+                    </TableCell>
+                  </StyledTableRow>
+
+                  {emp.family?.length > 0 &&
+                    emp.family.map((member) => (
+                      <DependentTableRow key={member.dependentId}>
+                        <TableCell>
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              cursor: "pointer",
+                            }}
+                            onClick={() =>
+                              handleViewDetails(member.dependentId)
+                            }
+                          >
+                            <Avatar
+                              sx={{
+                                width: 28,
+                                height: 28,
+                                mr: 1,
+                                bgcolor: "secondary.main",
+                              }}
+                            >
+                              {member.name.charAt(0)}
+                            </Avatar>
+                            <Typography variant="body2" color="primary">
+                              {member.dependentId}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Typography fontWeight="500">
+                            {member.name}
+                          </Typography>
+                          <Typography
+                            variant="caption"
+                            color="text.secondary"
+                          >
+                            {member.relation}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
+                          <Chip
+                            size="small"
+                            icon={getStatusIcon(member.status)}
+                            label={member.status}
+                            color={
+                              member.status === "active"
+                                ? "success"
+                                : member.status === "inactive"
+                                  ? "error"
+                                  : member.status === "on_leave"
+                                    ? "warning"
+                                    : member.status === "transferred"
+                                      ? "secondary"
+                                      : "info"
+                            }
+                            variant="outlined"
+                          />
+                        </TableCell>
+                        {["DOCTOR", "ADMIN"].includes(user.role) && (
+                          <>
+                            <TableCell>
+                              <Typography
+                                variant="body2"
+                              >
+                                {member.latestAllergy || " -"}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography
+                                variant="body2"
+                              >
+                                {member.latestCondition || " -"}
+                              </Typography>
+                            </TableCell>
+                            <TableCell>
+                              <Typography
+                                variant="body2"
+                              >
+                                {member.latestNote || " -"}
+                              </Typography>
+                            </TableCell>
+                          </>
+                        )}
+                        <TableCell align="center">
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              gap: 1,
+                            }}
+                          >
+                            {["DOCTOR", "ADMIN"].includes(user.role) && (
+                              <Tooltip title="Manage Allergy/Condition">
                                 <IconButton
                                   size="small"
-                                  onClick={() =>
-                                    handleViewDetails(member.dependentId)
-                                  }
+                                  onClick={() => handleOpenDialog(member.dependentId)}
                                   color="primary"
                                 >
-                                  <Person fontSize="small" />
+                                  <MedicalInformation fontSize="small" />
                                 </IconButton>
                               </Tooltip>
-                              <Tooltip title="View Reports">
-                                <IconButton
-                                  size="small"
-                                  onClick={() =>
-                                    handleViewReports(member.dependentId)
-                                  }
-                                  color="secondary"
-                                >
-                                  <Description fontSize="small" />
-                                </IconButton>
-                              </Tooltip>
-                            </Box>
-                          </TableCell>
-                        </DependentTableRow>
-                      ))}
-                  </React.Fragment>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-          <Box className="pagination-container">
-            <Box sx={{ display: "flex", alignItems: "center" }}>
-              <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
-                Showing {page * rowsPerPage + 1}-
-                {Math.min((page + 1) * rowsPerPage, filteredEmployees.length)}{" "}
-                of {filteredEmployees.length}
-              </Typography>
-              <FormControl size="small" sx={{ minWidth: 120, mr: 2 }}>
-                <InputLabel>Rows per page</InputLabel>
-                <Select
-                  value={rowsPerPage}
-                  onChange={handleChangeRowsPerPage}
-                  label="Rows per page"
+                            )}
+                            <Tooltip title="View Profile">
+                              <IconButton
+                                size="small"
+                                onClick={() =>
+                                  handleViewDetails(member.dependentId)
+                                }
+                                color="primary"
+                              >
+                                <Person fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                            <Tooltip title="View Reports">
+                              <IconButton
+                                size="small"
+                                onClick={() =>
+                                  handleViewReports(member.dependentId)
+                                }
+                                color="secondary"
+                              >
+                                <Description fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
+                          </Box>
+                        </TableCell>
+                      </DependentTableRow>
+                    ))}
+                </React.Fragment>
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+        <Box className="pagination-container">
+          <Box sx={{ display: "flex", alignItems: "center" }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mr: 2 }}>
+              Showing {page * rowsPerPage + 1}-
+              {Math.min((page + 1) * rowsPerPage, filteredEmployees.length)}{" "}
+              of {filteredEmployees.length}
+            </Typography>
+            <FormControl size="small" sx={{ minWidth: 120, mr: 2 }}>
+              <InputLabel>Rows per page</InputLabel>
+              <Select
+                value={rowsPerPage}
+                onChange={handleChangeRowsPerPage}
+                label="Rows per page"
+              >
+                <MenuItem value={5}>5</MenuItem>
+                <MenuItem value={10}>10</MenuItem>
+                <MenuItem value={25}>25</MenuItem>
+                <MenuItem value={50}>50</MenuItem>
+                <MenuItem value={100}>100</MenuItem>
+              </Select>
+            </FormControl>
+          </Box>
+          <Box sx={{ display: "flex", gap: 1 }}>
+            <Tooltip title="Previous page">
+              <span>
+                <IconButton
+                  onClick={() => setPage((p) => Math.max(p - 1, 0))}
+                  disabled={page === 0}
                 >
-                  <MenuItem value={5}>5</MenuItem>
-                  <MenuItem value={10}>10</MenuItem>
-                  <MenuItem value={25}>25</MenuItem>
-                  <MenuItem value={50}>50</MenuItem>
-                  <MenuItem value={100}>100</MenuItem> 
-                </Select>
-              </FormControl>
-            </Box>
-            <Box sx={{ display: "flex", gap: 1 }}>
-              <Tooltip title="Previous page">
-                <span>
-                  <IconButton
-                    onClick={() => setPage((p) => Math.max(p - 1, 0))}
-                    disabled={page === 0}
-                  >
-                    <NavigateBefore />
-                  </IconButton>
-                </span>
-              </Tooltip>
-              {!isMobile && (
-                <Box sx={{ display: "flex" }}>
-                  {[
-                    ...Array(
+                  <NavigateBefore />
+                </IconButton>
+              </span>
+            </Tooltip>
+            {!isMobile && (
+              <Box sx={{ display: "flex" }}>
+                {[
+                  ...Array(
+                    Math.ceil(filteredEmployees.length / rowsPerPage)
+                  ).keys(),
+                ]
+                  .slice(
+                    Math.max(0, page - 2),
+                    Math.min(
+                      page + 3,
                       Math.ceil(filteredEmployees.length / rowsPerPage)
-                    ).keys(),
-                  ]
-                    .slice(
-                      Math.max(0, page - 2),
+                    )
+                  )
+                  .map((p) => (
+                    <IconButton
+                      key={p}
+                      onClick={() => setPage(p)}
+                      color={p === page ? "primary" : "default"}
+                      sx={{ minWidth: 32, height: 32 }}
+                    >
+                      {p + 1}
+                    </IconButton>
+                  ))}
+              </Box>
+            )}
+            <Tooltip title="Next page">
+              <span>
+                <IconButton
+                  onClick={() =>
+                    setPage((p) =>
                       Math.min(
-                        page + 3,
-                        Math.ceil(filteredEmployees.length / rowsPerPage)
+                        p + 1,
+                        Math.ceil(filteredEmployees.length / rowsPerPage) - 1
                       )
                     )
-                    .map((p) => (
-                      <IconButton
-                        key={p}
-                        onClick={() => setPage(p)}
-                        color={p === page ? "primary" : "default"}
-                        sx={{ minWidth: 32, height: 32 }}
-                      >
-                        {p + 1}
-                      </IconButton>
-                    ))}
-                </Box>
-              )}
-              <Tooltip title="Next page">
-                <span>
-                  <IconButton
-                    onClick={() =>
-                      setPage((p) =>
-                        Math.min(
-                          p + 1,
-                          Math.ceil(filteredEmployees.length / rowsPerPage) - 1
-                        )
-                      )
-                    }
-                    disabled={
-                      page >=
-                      Math.ceil(filteredEmployees.length / rowsPerPage) - 1
-                    }
-                  >
-                    <NavigateNext />
-                  </IconButton>
-                </span>
-              </Tooltip>
-            </Box>
+                  }
+                  disabled={
+                    page >=
+                    Math.ceil(filteredEmployees.length / rowsPerPage) - 1
+                  }
+                >
+                  <NavigateNext />
+                </IconButton>
+              </span>
+            </Tooltip>
           </Box>
-        </>
-      ) : (
-        <Box className="empty-state"
-        display="flex" 
-    flexDirection="column" 
-    alignItems="center" 
-    justifyContent="center" 
-    p={4}
-    textAlign="center"
-        >
-          <Typography variant="h6" gutterBottom>
-            No employees found
-          </Typography>
-          <Typography variant="body2" color="text.secondary" mb={2}>
-          {searchQuery 
-        ? "No employees match your search criteria"
-        : "Try adjusting your filters"}
+        </Box>
+      </>
+    ) : (
+      <Box className="empty-state"
+        display="flex"
+        flexDirection="column"
+        alignItems="center"
+        justifyContent="center"
+        p={4}
+        textAlign="center"
+      >
+        <Typography variant="h6" gutterBottom>
+          No employees found
         </Typography>
-          <Button
+        <Typography variant="body2" color="text.secondary" mb={2}>
+          {searchQuery
+            ? "No employees match your search criteria"
+            : "Try adjusting your filters"}
+        </Typography>
+        <Button
           variant="outlined"
           onClick={clearFilters}
-          startIcon={<Refresh/>}
-          >
-            Reset filters
-          </Button>
-        </Box>
-      )}
-
-      {/* Filter Dialog */}
-      <Dialog
-        open={filterDialogOpen}
-        onClose={() => setFilterDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Typography variant="h6">Advanced Filters</Typography>
-            <IconButton onClick={() => setFilterDialogOpen(false)}>
-              <Close />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-        <DialogContent dividers>
-          <Box sx={{ mb: 3 }}>
-            <Typography gutterBottom>Department</Typography>
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-              {departments.map((dept) => (
-                <Chip
-                  key={dept}
-                  label={dept}
-                  clickable
-                  variant={
-                    selectedFilters.department.includes(dept)
-                      ? "filled"
-                      : "outlined"
-                  }
-                  color={
-                    selectedFilters.department.includes(dept)
-                      ? "primary"
-                      : "default"
-                  }
-                  onClick={() =>
-                    setSelectedFilters((prev) => ({
-                      ...prev,
-                      department: prev.department.includes(dept)
-                        ? prev.department.filter((d) => d !== dept)
-                        : [...prev.department, dept],
-                    }))
-                  }
-                />
-              ))}
-            </Box>
-          </Box>
-          <Divider sx={{ my: 2 }} />
-          <Box>
-            <Typography gutterBottom>Status</Typography>
-            <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-              {["active", "inactive", "on_leave", "transferred"].map((status) => (
-                <Chip
-                  key={status}
-                  label={status}
-                  clickable
-                  variant={
-                    selectedFilters.status.includes(status)
-                      ? "filled"
-                      : "outlined"
-                  }
-                  color={
-                    selectedFilters.status.includes(status)
-                      ? "primary"
-                      : "default"
-                  }
-                  onClick={() =>
-                    setSelectedFilters((prev) => ({
-                      ...prev,
-                      status: prev.status.includes(status)
-                        ? prev.status.filter((s) => s !== status)
-                        : [...prev.status, status],
-                    }))
-                  }
-                />
-              ))}
-            </Box>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={clearFilters}>Clear All</Button>
-          <Button onClick={applyFilters} variant="contained" disableElevation>
-            Apply Filters
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Employee Detail Dialog */}
-      <Dialog
-        open={detailDialogOpen}
-        onClose={() => setDetailDialogOpen(false)}
-        maxWidth="md"
-        fullWidth
-      >
-        <DialogTitle>
-          <Box
-            sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <Typography variant="h6">
-              {selectedEmployee?.name}'s Profile
-            </Typography>
-            <IconButton onClick={() => setDetailDialogOpen(false)}>
-              <Close />
-            </IconButton>
-          </Box>
-        </DialogTitle>
-        <DialogContent dividers>
-          {profileLoading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
-              <CircularProgress />
-            </Box>
-          ) : selectedEmployee ? (
-            <EmployeeProfile employee={selectedEmployee} />
-          ) : null}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setDetailDialogOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-
-      <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
-  <DialogTitle>
-    <Box display="flex" justifyContent="space-between" alignItems="center">
-      <Typography variant="h6">
-        {activeTab === 0 ? "Allergy" : activeTab === 1 ? "Chronic illness" : "Clinic Notes"} Management
-      </Typography>
-      <IconButton onClick={handleCloseDialog}>
-        <Close />
-      </IconButton>
-    </Box>
-  </DialogTitle>
-  <DialogContent dividers>
-    <Tabs 
-      value={activeTab} 
-      onChange={(e, newValue) => setActiveTab(newValue)}
-      sx={{ mb: 2 }}
-    >
-      <Tab label="Allergies" />
-      <Tab label="Chronic illness" />
-      <Tab label="Clinic Notes" />
-    </Tabs>
-    
-    <Box mb={3}>
-      <Typography variant="subtitle1" gutterBottom>
-        Add New {activeTab === 0 ? "Allergy" : activeTab === 1 ? "Chronic illness" : "Clinic Notes"}
-      </Typography>
-      <Box display="flex" gap={2}>
-        <TextField
-          fullWidth
-          variant="outlined"
-          size="small"
-          value={newEntry}
-          onChange={(e) => setNewEntry(e.target.value)}
-          placeholder={`Enter ${activeTab === 0 ? "allergy" : activeTab ===1 ? "Chronic illness" : "notes"} name`}
-        />
-        <Button
-          variant="contained"
-          onClick={handleAddEntry}
-          disabled={!newEntry}
-          startIcon={<Add />}
+          startIcon={<Refresh />}
         >
-          Add
+          Reset filters
         </Button>
       </Box>
-    </Box>
-    
-    <Divider sx={{ my: 2 }} />
-    
-    <Typography variant="subtitle1" gutterBottom>
-      {activeTab === 0 ? "Allergy" : activeTab === 1 ? "Chronic illness" : "Clinic notes"} History
-    </Typography>
-    
-    {loadingAllergies && activeTab === 0 ? (
-      <LoadingScreen size={30} />
-    ) : loadingConditions && activeTab === 1 ? (
-      <LoadingScreen size={30} />
-    ) : (
-      <Table size="small">
-        <TableHead>
-          <TableRow>
-            <TableCell>Name</TableCell>
-            <TableCell>Updated On</TableCell>
-            <TableCell>Updated By</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {sortedHistory.map((item, index) => (
-            <TableRow key={item.id}>
-              <TableCell>
-                {item[activeTab === 0 ? "allergy_name" : activeTab === 1 ? "condition_name" : "notes_name"]}
-                {index === 0 && (
-                  <Chip
-                    label="Latest"
-                    size="small"
-                    color="primary"
-                    sx={{ ml: 1 }}
-                  />
-                )}
-              </TableCell>
-              <TableCell>
-                {new Date(item.updated_at).toLocaleDateString()}
-              </TableCell>
-              <TableCell>
-                {item.updated_by || item.created_by}
-              </TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
     )}
-  </DialogContent>
-  <DialogActions>
-    <Button onClick={handleCloseDialog}>Close</Button>
-  </DialogActions>
-</Dialog>
-    </motion.div>
-  );
+
+    {/* Filter Dialog */}
+    <Dialog
+      open={filterDialogOpen}
+      onClose={() => setFilterDialogOpen(false)}
+      maxWidth="sm"
+      fullWidth
+    >
+      <DialogTitle>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Typography variant="h6">Advanced Filters</Typography>
+          <IconButton onClick={() => setFilterDialogOpen(false)}>
+            <Close />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+      <DialogContent dividers>
+        <Box sx={{ mb: 3 }}>
+          <Typography gutterBottom>Department</Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+            {departments.map((dept) => (
+              <Chip
+                key={dept}
+                label={dept}
+                clickable
+                variant={
+                  selectedFilters.department.includes(dept)
+                    ? "filled"
+                    : "outlined"
+                }
+                color={
+                  selectedFilters.department.includes(dept)
+                    ? "primary"
+                    : "default"
+                }
+                onClick={() =>
+                  setSelectedFilters((prev) => ({
+                    ...prev,
+                    department: prev.department.includes(dept)
+                      ? prev.department.filter((d) => d !== dept)
+                      : [...prev.department, dept],
+                  }))
+                }
+              />
+            ))}
+          </Box>
+        </Box>
+        <Divider sx={{ my: 2 }} />
+        <Box>
+          <Typography gutterBottom>Status</Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+            {["active", "inactive", "on_leave", "transferred"].map((status) => (
+              <Chip
+                key={status}
+                label={status}
+                clickable
+                variant={
+                  selectedFilters.status.includes(status)
+                    ? "filled"
+                    : "outlined"
+                }
+                color={
+                  selectedFilters.status.includes(status)
+                    ? "primary"
+                    : "default"
+                }
+                onClick={() =>
+                  setSelectedFilters((prev) => ({
+                    ...prev,
+                    status: prev.status.includes(status)
+                      ? prev.status.filter((s) => s !== status)
+                      : [...prev.status, status],
+                  }))
+                }
+              />
+            ))}
+          </Box>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={clearFilters}>Clear All</Button>
+        <Button onClick={applyFilters} variant="contained" disableElevation>
+          Apply Filters
+        </Button>
+      </DialogActions>
+    </Dialog>
+
+    {/* Employee Detail Dialog */}
+    <Dialog
+      open={detailDialogOpen}
+      onClose={() => setDetailDialogOpen(false)}
+      maxWidth="md"
+      fullWidth
+    >
+      <DialogTitle>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}
+        >
+          <Typography variant="h6">
+            {selectedEmployee?.name}'s Profile
+          </Typography>
+          <IconButton onClick={() => setDetailDialogOpen(false)}>
+            <Close />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+      <DialogContent dividers>
+        {profileLoading ? (
+          <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+            <CircularProgress />
+          </Box>
+        ) : selectedEmployee ? (
+          <EmployeeProfile employee={selectedEmployee} />
+        ) : null}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setDetailDialogOpen(false)}>Close</Button>
+      </DialogActions>
+    </Dialog>
+
+    <Dialog open={dialogOpen} onClose={handleCloseDialog} maxWidth="md" fullWidth>
+      <DialogTitle>
+        <Box display="flex" justifyContent="space-between" alignItems="center">
+          <Typography variant="h6">
+            {activeTab === 0 ? "Allergy" : activeTab === 1 ? "Chronic illness" : "Clinic Notes"} Management
+          </Typography>
+          <IconButton onClick={handleCloseDialog}>
+            <Close />
+          </IconButton>
+        </Box>
+      </DialogTitle>
+      <DialogContent dividers>
+        <Tabs
+          value={activeTab}
+          onChange={(e, newValue) => setActiveTab(newValue)}
+          sx={{ mb: 2 }}
+        >
+          <Tab label="Allergies" />
+          <Tab label="Chronic illness" />
+          <Tab label="Clinic Notes" />
+        </Tabs>
+
+        <Box mb={3}>
+          <Typography variant="subtitle1" gutterBottom>
+            Add New {activeTab === 0 ? "Allergy" : activeTab === 1 ? "Chronic illness" : "Clinic Notes"}
+          </Typography>
+          <Box display="flex" gap={2}>
+            <TextField
+              fullWidth
+              variant="outlined"
+              size="small"
+              value={newEntry}
+              onChange={(e) => setNewEntry(e.target.value)}
+              placeholder={`Enter ${activeTab === 0 ? "allergy" : activeTab === 1 ? "Chronic illness" : "notes"} name`}
+            />
+            <Button
+              variant="contained"
+              onClick={handleAddEntry}
+              disabled={!newEntry || isAdding}
+              startIcon={<Add />}
+            >
+              {isAdding ? <CircularProgress size={24} /> : "Add"}
+            </Button>
+          </Box>
+        </Box>
+
+        <Divider sx={{ my: 2 }} />
+
+        <Typography variant="subtitle1" gutterBottom>
+          {activeTab === 0 ? "Allergy" : activeTab === 1 ? "Chronic illness" : "Clinic notes"} History
+        </Typography>
+
+        {loadingAllergies && activeTab === 0 ? (
+          <LoadingScreen size={30} />
+        ) : loadingConditions && activeTab === 1 ? (
+          <LoadingScreen size={30} />
+        ) : loadingClinicNotes && activeTab === 2 ? (
+          <LoadingScreen size={30} />
+        ) : (
+          <Table size="small">
+            <TableHead>
+              <TableRow>
+                <TableCell>Name</TableCell>
+                <TableCell>Updated On</TableCell>
+                <TableCell>Updated By</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {sortedHistory.map((item, index) => (
+                <TableRow key={item.id}>
+                  <TableCell>
+                    {item[activeTab === 0 ? "allergy_name" : activeTab === 1 ? "condition_name" : "notes_name"]}
+                    {index === 0 && (
+                      <Chip
+                        label="Latest"
+                        size="small"
+                        color="primary"
+                        sx={{ ml: 1 }}
+                      />
+                    )}
+                  </TableCell>
+                  <TableCell>
+                    {new Date(item.updated_at).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    {item.updated_by || item.created_by}
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleCloseDialog}>Close</Button>
+      </DialogActions>
+    </Dialog>
+  </motion.div>
+);
 };
 
 export default EmployeeDirectory;

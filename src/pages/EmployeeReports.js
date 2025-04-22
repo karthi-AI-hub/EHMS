@@ -38,7 +38,6 @@ import {
   Visibility,
   Search,
   FilterAlt,
-  DateRange,
   Download,
   Refresh,
   ArrowUpward,
@@ -165,6 +164,9 @@ const EmployeeReports = () => {
   };
 
   const checkFamilyMemberAccess = async (requestedId, currentUserId) => {
+    if(!requestedId || !currentUserId){
+      return;
+    }
     try {
       const response = await api.get(`/checkAccess`, {
         params: {
@@ -1100,7 +1102,7 @@ const EmployeeReports = () => {
             justifyContent="space-between"
             alignItems="center"
           >
-            <span>Report Instructions</span>
+            <span>REPORT INSTRUCTIONS</span>
             <IconButton onClick={() => setIsInstructionDialogOpen(false)}>
               <Close />
             </IconButton>
@@ -1126,7 +1128,7 @@ const EmployeeReports = () => {
 
           <Box mt={3}>
             <Typography variant="h6" gutterBottom>
-              Instruction History
+            INSTRUCTION HISTORY
             </Typography>
             {instructions[selectedReportForInstruction]?.length > 0 ? (
               <List dense>

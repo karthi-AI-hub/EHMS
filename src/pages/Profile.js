@@ -32,6 +32,7 @@ import { useNavigate } from "react-router-dom";
 import api from "../utils/api";
 import { useAuth } from "../context/AuthContext";
 import LoadingScreen from "../components/common/LoadingScreen";
+import { calculateAge } from "../utils/dateUtils"; 
 
 const Profile = () => {
   const { user } = useAuth();
@@ -75,7 +76,7 @@ const Profile = () => {
       </Box>
     );
   }
-
+  
   // Get current user or selected family member
   const currentProfile =
     selectedTab === "You"
@@ -341,33 +342,50 @@ const Profile = () => {
               <TableBody>
                 <TableRow>
                   <TableCell>
-                    <Typography fontWeight="bold">Name</Typography>
+                    <Typography fontWeight="bold">NAME</Typography>
                   </TableCell>
                   <TableCell>{currentProfile?.name || "N/A"}</TableCell>
                 </TableRow>
+                <TableRow>
+                      <TableCell>
+                        <Typography fontWeight="bold">AGE</Typography>
+                      </TableCell>
+                      <TableCell>{calculateAge(currentProfile?.dob) || "N/A"}</TableCell>
+                    </TableRow><TableRow>
+                      <TableCell>
+                        <Typography fontWeight="bold">DOB</Typography>
+                      </TableCell>
+                      <TableCell>{currentProfile?.dob || "N/A"}</TableCell>
+                    </TableRow><TableRow>
+                      <TableCell>
+                        <Typography fontWeight="bold">BLOOD GROUP</Typography>
+                      </TableCell>
+                      <TableCell>{currentProfile?.blood || "N/A"}</TableCell>
+                    </TableRow>
                 {selectedTab === "You" && (
                   <>
+                  
                     <TableRow>
                       <TableCell>
-                        <Typography fontWeight="bold">Email</Typography>
+                        <Typography fontWeight="bold">EMAIL</Typography>
                       </TableCell>
                       <TableCell>{currentProfile?.email || "N/A"}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>
-                        <Typography fontWeight="bold">Phone</Typography>
+                        <Typography fontWeight="bold">PHONE</Typography>
                       </TableCell>
                       <TableCell>{currentProfile?.phone || "N/A"}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>
-                        <Typography fontWeight="bold">Address</Typography>
+                        <Typography fontWeight="bold">ADDRESS</Typography>
                       </TableCell>
                       <TableCell>{currentProfile?.address || "N/A"}</TableCell>
                     </TableRow>
                     <TableRow>
                       <TableCell>
-                        <Typography fontWeight="bold">Department</Typography>
+                        <Typography fontWeight="bold">DEPARTMENT</Typography>
                       </TableCell>
                       <TableCell>
                         {currentProfile?.department || "N/A"}
@@ -378,7 +396,7 @@ const Profile = () => {
                 {selectedTab !== "You" && (
                   <TableRow>
                     <TableCell>
-                      <Typography fontWeight="bold">Relation</Typography>
+                      <Typography fontWeight="bold">RELATION</Typography>
                     </TableCell>
                     <TableCell>{currentProfile?.relation || "N/A"}</TableCell>
                   </TableRow>

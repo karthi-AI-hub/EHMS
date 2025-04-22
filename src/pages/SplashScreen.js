@@ -63,7 +63,7 @@ const SplashScreen = () => {
             color: "#333",
           }}
         >
-          Welcome to SAIL Health Portal
+          Welcome to SAIL - SSP Health Portal
         </Typography>
 
         <Typography
@@ -199,7 +199,7 @@ const SplashScreen = () => {
         }}
       >
         <Typography variant="body2" sx={{ color: "#666" }}>
-          &copy; {new Date().getFullYear()} SAIL Health Portal. All rights reserved.
+          &copy; {new Date().getFullYear()} SAIL - SSP Health Portal. All rights reserved.
         </Typography>
       </Box>
     </Box>

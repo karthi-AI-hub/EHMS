@@ -10,6 +10,7 @@ import {
   Warning,
   Info,
 } from "@mui/icons-material";
+import { calculateAge } from "../../utils/dateUtils";
 
 const EmployeeProfile = ({ employee }) => {
   const isDependent = !!employee.dependentId;
@@ -30,30 +31,43 @@ const EmployeeProfile = ({ employee }) => {
         <Box>
           <Typography variant="h6">{employee.name}</Typography>
           <Typography variant="body2" color="text.secondary">
-            ID: {employee.dependentId || employee.employeeId}
+            ID : {employee.dependentId || employee.employeeId || "N/A"}
           </Typography>
+
+          <Typography variant="body2" color="text.secondary">
+            AGE : {calculateAge(employee.dob) || "N/A"}
+          </Typography>
+
+          <Typography variant="body2" color="text.secondary">
+            DOB : {employee.dob || "N/A"}
+          </Typography>
+
+          <Typography variant="body2" color="text.secondary">
+            BLOOD GROUP : {employee.blood || "N/A"}
+          </Typography>
+
           {isDependent && (
             <Typography variant="body2" color="text.secondary">
-              Relation: {employee.relation}
+              RELATION : {employee.relation || "N/A"}
             </Typography>
             
           )}
           {!isDependent && (
             <>
               <Typography variant="body2" color="text.secondary">
-                Email: {employee.email || "N/A"}
+                EMAIL : {employee.email || "N/A"}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Phone: {employee.phone || "N/A"}
+                PHONE : {employee.phone || "N/A"}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Address: {employee.address || "N/A"}
+                ADDRESS : {employee.address || "N/A"}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Department: {employee.department || "N/A"}
+                DEPARTMENT : {employee.department || "N/A"}
               </Typography>
               <Typography variant="body2" color="text.secondary">
-                Role: {employee.role || "N/A"}
+                ROLE : {employee.role || "N/A"}
               </Typography>
             </>
           )}

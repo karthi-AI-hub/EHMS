@@ -30,6 +30,7 @@ import {
   Person,
   Email,
   Phone,
+  Cake,
   LocationOn,
   Work,
   Badge,
@@ -39,7 +40,8 @@ import {
   DriveFileRenameOutline,
   Add,
   Edit,
-  FamilyRestroom
+  FamilyRestroom,
+  Bloodtype
 } from "@mui/icons-material";
 import api from "../utils/api";
 import LoadingScreen from "../components/common/LoadingScreen";
@@ -49,19 +51,23 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
   const [formData, setFormData] = useState({
     employee_id: "",
     name: "",
+    dob: "",
+    blood: "",
     email: "",
     phone: "",
     address: "",
     department: "",
     status: "active",
     role: "employee",
-    refer_hospital: false, // New field for "Refer Another Hospital"
+    refer_hospital: true, 
   });
 
   // Family members state
   const [familyMembers, setFamilyMembers] = useState([]);
   const [currentMember, setCurrentMember] = useState({
     name: "",
+    dob: "",
+    blood: "",
     relation: "SON",
     status: "active"
   });
@@ -79,6 +85,8 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
       setFormData({
         employee_id: employeeId ||"",
         name: user.name || "",
+        dob: user.dob || "",
+        blood: user.blood || "",
         email: user.email || "",
         phone: user.phone || "",
         address: user.address || "",
@@ -141,6 +149,8 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
   
     const newMember = {
       name: currentMember.name,
+      dob: currentMember.dob,
+      blood: currentMember.blood,
       relation: currentMember.relation,
       status: currentMember.status.toLowerCase() || "active", // Ensure status is lowercase for consistency
     };
@@ -161,6 +171,8 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
     // Reset the current member form
     setCurrentMember({
       name: "",
+      dob: "",
+      blood: "",
       relation: "SON",
       status: "active",
     });
@@ -171,6 +183,8 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
     const member = familyMembers[index];
     setCurrentMember({
       name: member.name,
+      dob: member.dob,
+      blood: member.blood,
       relation: member.relation,
       status: member.status?.toLowerCase() || 'active'
     });
@@ -181,6 +195,8 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
   const cancelEdit = () => {
     setCurrentMember({
       name: "",
+      dob: "",
+      blood: "",
       relation: "SON",
       status: "active"
     });
@@ -218,7 +234,6 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
         await api.post(`/employee`, payload);
       }
 
-      // Reload family members to ensure UI reflects the latest data
       if (user) {
         await loadFamilyMembers(formData.employee_id);
       }
@@ -342,6 +357,38 @@ const UserForm = ({ user, role, onSuccess, onCancel }) => {
                 startAdornment: (
                   <InputAdornment position="start">
                     <Email color="primary" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+             <TextField
+              fullWidth
+              label="DOB"
+              name="dob"
+              type="date"
+              value={formData.dob}
+              onChange={handleChange}
+              margin="normal"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Cake color="primary" />
+                  </InputAdornment>
+                ),
+              }}
+            />
+             <TextField
+              fullWidth
+              label="Blood Group"
+              name="blood"
+              type="text"
+              value={formData.blood}
+              onChange={handleChange}
+              margin="normal"
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Bloodtype color="primary" />
                   </InputAdornment>
                 ),
               }}

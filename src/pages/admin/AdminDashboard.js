@@ -74,6 +74,7 @@ import EmployeeStatsCard from "../../components/EmployeeStatsCard";
 import LoadingScreen from "../../components/common/LoadingScreen";
 import UserForm from "../UserForm";
 import { utils, writeFile } from "xlsx";
+import { calculateAge } from "../../utils/dateUtils";
 
 const Dashboard = ({ roleFilter = null }) => {
   const theme = useTheme();
@@ -962,7 +963,7 @@ const Dashboard = ({ roleFilter = null }) => {
               justifyContent: "space-between",
               alignItems: "center"
             }}>
-              <Typography variant="h6">
+              <Typography variant="body2" fontWeight="bold">
                 {selectedEmployee.name}'s Profile
               </Typography>
               <IconButton 
@@ -1057,35 +1058,50 @@ const Dashboard = ({ roleFilter = null }) => {
                   gap: 3
                 }}>
                   <Box>
-                    <Typography variant="subtitle1" gutterBottom>
+                    <Typography variant="h5" gutterBottom>
                       Employee Information
                     </Typography>
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                       <Typography variant="body2">
-                        <strong>ID:</strong> {selectedEmployee.employeeId}
+                        <strong>ID :</strong> {selectedEmployee.employeeId}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Name:</strong> {selectedEmployee.name || "N/A"}
+                        <strong>Name :</strong> {selectedEmployee.name || "N/A"}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Department:</strong> {selectedEmployee.department || "N/A"}
+                        <strong>Department :</strong> {selectedEmployee.department || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
-                  <Box></Box>
                   <Box>
-                    <Typography variant="subtitle1" gutterBottom>
+                  <Typography variant="h5" gutterBottom>
+                      Personal Information
+                    </Typography>
+                    <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+                      <Typography variant="body2">
+                        <strong>AGE :</strong> {calculateAge(selectedEmployee.dob) || "N/A"}
+                      </Typography>
+                      <Typography variant="body2">
+                        <strong>DOB :</strong> {selectedEmployee.dob || "N/A"}
+                      </Typography>
+                      <Typography variant="body2">
+                        <strong>BLOOD GROUP  :</strong> {selectedEmployee.blood || "N/A"}
+                      </Typography>
+                    </Box>
+                  </Box>
+                  <Box>
+                    <Typography variant="h5" gutterBottom>
                       Contact Information
                     </Typography>
                     <Box sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
                       <Typography variant="body2">
-                        <strong>Address:</strong> {selectedEmployee.address || "N/A"}
+                        <strong>Address :</strong> {selectedEmployee.address || "N/A"}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Phone number:</strong> {selectedEmployee.phone || "N/A"}
+                        <strong>Phone number :</strong> {selectedEmployee.phone || "N/A"}
                       </Typography>
                       <Typography variant="body2">
-                        <strong>Email Id:</strong> {selectedEmployee.email || "N/A"}
+                        <strong>Email Id :</strong> {selectedEmployee.email || "N/A"}
                       </Typography>
                     </Box>
                   </Box>
