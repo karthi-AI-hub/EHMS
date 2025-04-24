@@ -807,7 +807,7 @@ const EmployeeReports = () => {
                     <TableRow>
                       <TableCell>
                         <Box display="flex" alignItems="center">
-                          Report ID
+                          REPORT ID
                           <IconButton
                             size="small"
                             onClick={() => handleSort("file_name")}
@@ -826,7 +826,7 @@ const EmployeeReports = () => {
                       </TableCell>
                       <TableCell>
                         <Box display="flex" alignItems="center">
-                          Type
+                          REPORT TYPE
                           <IconButton
                             size="small"
                             onClick={() => handleSort("report_type")}
@@ -845,13 +845,13 @@ const EmployeeReports = () => {
                           </IconButton>
                         </Box>
                       </TableCell>
-                      <TableCell>Notes</TableCell>
+                      <TableCell>NOTES</TableCell>
                       {["DOCTOR", "ADMIN"].includes(user.role) && (
-                        <TableCell>Feedback</TableCell>
+                        <TableCell>DOCTOR REMARKS</TableCell>
                       )}
                       <TableCell>
                         <Box display="flex" alignItems="center">
-                          Date
+                          DATE
                           <IconButton
                             size="small"
                             onClick={() => handleSort("uploaded_at")}
@@ -870,7 +870,7 @@ const EmployeeReports = () => {
                           </IconButton>
                         </Box>
                       </TableCell>
-                      <TableCell align="center">Actions</TableCell>
+                      <TableCell align="center">ACTIONS</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -949,7 +949,7 @@ const EmployeeReports = () => {
                                 variant="body2"
                                 color="text.secondary"
                               >
-                                No feedback available
+                                No remarks available
                               </Typography>
                             )}
                           </TableCell>
@@ -963,7 +963,7 @@ const EmployeeReports = () => {
                           >
                             {(user.role === "DOCTOR" ||
                               user.role === "ADMIN") && (
-                              <Tooltip title="View Feedback History">
+                              <Tooltip title="View Remarks History">
                                 <IconButton
                                   color="primary"
                                   onClick={() => {
