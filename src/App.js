@@ -20,7 +20,6 @@ import Analytics from "./pages/Analytics";
 function App() {
 
   return (
-    <Router basename="/ehms">
       <AuthProvider>
         <Routes>
           <Route path="/" element={<SplashScreen />} />
@@ -104,7 +103,6 @@ function App() {
           <Route path="*" element={<NotFound/>} />
         </Routes>
       </AuthProvider>
-    </Router>
   );
 }
 
