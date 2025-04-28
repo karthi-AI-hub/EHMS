@@ -2,14 +2,15 @@
 
 # dependencies
 /node_modules
-/.pnp
+/package-lock.json
+/pnp
 .pnp.js
 
 # testing
 /coverage
 
 # production
-
+/build
 # misc
 .env
 .DS_Store
@@ -53,3 +54,4 @@ Thumbs.db
 
 # Cache
 .cache/
+

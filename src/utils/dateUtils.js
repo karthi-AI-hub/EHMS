@@ -18,6 +18,7 @@ export const safeFormatDate = (dateString, formatStr = 'MMM dd, yyyy') => {
 export const calculateAge = (dob) => {
   if (!dob) return "N/A";
   const birthDate = new Date(dob);
+  if (isNaN(birthDate.getTime())) return "N/A";
   const today = new Date();
   let age = today.getFullYear() - birthDate.getFullYear();
   

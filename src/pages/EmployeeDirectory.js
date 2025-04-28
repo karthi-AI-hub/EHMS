@@ -405,10 +405,6 @@ const EmployeeDirectory = () => {
               ? "success"
               : data.status === "inactive"
               ? "error"
-              : data.status === "on_leave"
-              ? "warning"
-              : data.status === "transferred"
-              ? "secondary"
               : "info"
           }
           variant="outlined"
@@ -777,7 +773,7 @@ const EmployeeDirectory = () => {
           <Box>
             <Typography gutterBottom>Status</Typography>
             <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-              {["active", "inactive", "on_leave", "transferred"].map((status) => (
+              {["active", "inactive"].map((status) => (
                 <Chip
                   key={status}
                   label={status}

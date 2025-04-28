@@ -61,8 +61,6 @@ const StatusBadge = ({ status }) => {
   const statusConfig = {
     active: { color: 'success', icon: <CheckCircle fontSize="small" /> },
     inactive: { color: 'error', icon: <Cancel fontSize="small" /> },
-    on_leave: { color: 'warning', icon: <PauseCircle fontSize="small" /> },
-    transferred: { color: 'secondary', icon: <SwapHoriz fontSize="small" /> }
   };
 
   return (
@@ -260,8 +258,6 @@ const DoctorsList = () => {
               <MenuItem value="all">All Status</MenuItem>
               <MenuItem value="active">Active</MenuItem>
               <MenuItem value="inactive">Inactive</MenuItem>
-              <MenuItem value="on_leave">On Leave</MenuItem>
-              <MenuItem value="transferred">Transferred</MenuItem>
             </Select>
           </FormControl>
         </Box>
@@ -514,8 +510,6 @@ function getStatusColor(status) {
   switch(status) {
     case 'active': return '#4caf50';
     case 'inactive': return '#f44336';
-    case 'on_leave': return '#ff9800';
-    case 'transferred': return '#9c27b0';
     default: return '#1976d2';
   }
 }

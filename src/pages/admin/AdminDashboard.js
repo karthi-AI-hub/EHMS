@@ -56,7 +56,6 @@ import {
     Close,
     KeyboardArrowDown,
     KeyboardArrowUp,
-    Delete,
     Download,
     People,
     CheckCircle,
@@ -561,11 +560,6 @@ const Dashboard = ({ roleFilter = null }) => {
               <Tooltip title="Export selected">
                 <IconButton size="small" sx={{ mr: 1 }}>
                   <Download fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Delete selected">
-                <IconButton size="small" color="error">
-                  <Delete fontSize="small" />
                 </IconButton>
               </Tooltip>
             </Box>
